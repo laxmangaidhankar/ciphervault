@@ -1,0 +1,91 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Check, Shield, KeyRound, Clock } from 'lucide-react';
+
+export const RoomLayout = ({ children }) => {
+  return (
+    <div className="min-h-screen flex bg-canvas-black">
+      {/* Left Branding Panel */}
+      <div className="hidden lg:flex lg:w-[40%] relative bg-surface-slate overflow-hidden border-r border-surface-border flex-col justify-between p-12">
+        <div className="absolute inset-0 bg-linear-to-br from-brand-blue/10 via-brand-violet/10 to-brand-mint/10 z-0" />
+
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 z-0 mix-blend-overlay" />
+
+        {/* Logo */}
+        <div className="relative z-10">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-brand-blue/15 border border-brand-blue/30 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-brand-blue" />
+            </div>
+
+            <h1 className="text-text-primary tracking-tight text-3xl font-semibold">
+              CipherVault
+            </h1>
+          </Link>
+        </div>
+
+        {/* Main Content */}
+        <div className="relative z-10 max-w-lg mt-auto">
+          <div className="w-20 h-20 rounded-2xl bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center mb-8">
+            <Shield className="w-10 h-10 text-brand-blue" />
+          </div>
+
+          <h2 className="text-display text-text-primary text-4xl mb-6">
+            Secure secrets.
+            <br />
+            <span className="text-brand-blue">Share with control.</span>
+          </h2>
+
+          <p className="text-body text-text-secondary text-lg mb-8">
+            Create secure rooms to manage and share environment variables,
+            credentials, and sensitive configuration with your team.
+          </p>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-body text-text-primary">
+              <div className="w-6 h-6 rounded-full bg-brand-mint/20 border border-brand-mint/50 flex items-center justify-center shrink-0">
+                <KeyRound className="w-3.5 h-3.5 text-brand-mint" />
+              </div>
+              <span>Role-based access keys</span>
+            </div>
+
+            <div className="flex items-center gap-3 text-body text-text-primary">
+              <div className="w-6 h-6 rounded-full bg-brand-mint/20 border border-brand-mint/50 flex items-center justify-center shrink-0">
+                <Shield className="w-3.5 h-3.5 text-brand-mint" />
+              </div>
+              <span>Encrypted secret storage</span>
+            </div>
+
+            <div className="flex items-center gap-3 text-body text-text-primary">
+              <div className="w-6 h-6 rounded-full bg-brand-mint/20 border border-brand-mint/50 flex items-center justify-center shrink-0">
+                <Clock className="w-3.5 h-3.5 text-brand-mint" />
+              </div>
+              <span>Temporary, controlled-access rooms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Auth Content */}
+      <div className="w-full lg:w-[60%] flex items-center justify-center p-6 sm:p-12 relative">
+        {/* Mobile Logo */}
+        <Link
+          to="/"
+          className="absolute top-6 left-6 lg:hidden flex items-center gap-2"
+        >
+          <div className="w-7 h-7 rounded-md bg-brand-blue/15 border border-brand-blue/30 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-brand-blue" />
+          </div>
+
+          <h1 className="text-text-primary tracking-tight text-xl font-semibold">
+            CipherVault
+          </h1>
+        </Link>
+
+        <div className="w-full max-w-md">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
