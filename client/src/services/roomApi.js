@@ -12,11 +12,13 @@ const api = axios.create({
 });
 
 export const roomApi = {
-  createRoom: async (durationMinutes = 10, maxParticipants = 2) => {
-    const response = await api.post('/v1/rooms', {
-      durationMinutes,
-      maxParticipants
+  createRoom: async ({ roomName, maxParticipants, durationMinutes = 1440 }) => {
+    const response = await api.post('/api/v1/rooms', {
+      roomName,
+      maxParticipants,
+      durationMinutes
     });
+
     return response.data;
   },
 

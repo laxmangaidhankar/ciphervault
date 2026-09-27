@@ -5,7 +5,6 @@ const joinRoom =() => {
     <RoomLayout>
          <div className="w-full">
         <JoinRoomForm />
-       
       </div>
     </RoomLayout>
   )

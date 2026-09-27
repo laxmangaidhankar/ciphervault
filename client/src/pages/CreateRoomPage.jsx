@@ -1,5 +1,5 @@
 import { RoomLayout } from '../components/createRoom/CreateRoomLayout';
-import { CreateRoomForm } from '../components/createRoom/CreateRoom';
+import { CreateRoomForm } from '../components/createRoom/CreateRoomForm';
 
 
 
@@ -9,7 +9,6 @@ const createRoom = () => {
      <RoomLayout>
       <div className="w-full">
         <CreateRoomForm />
-      
       </div>
     </RoomLayout>
   )

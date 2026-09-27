@@ -1,8 +1,13 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+import { roomApi } from '../../services/roomApi';
+import {
+  generateEncryptionKey,
+  exportKeyToString
+} from '../../crypto/keyManager';
 
 export const CreateRoomForm = () => {
   const [roomName, setRoomName] = useState('');
@@ -12,34 +17,71 @@ export const CreateRoomForm = () => {
 
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleCreateRoom = async (e) => {
     e.preventDefault();
+
     setError('');
 
     const trimmedName = roomName.trim();
     const participantCount = Number(participants);
 
+    // Client-side validation
     if (!trimmedName) {
-      setError('Enter a room name');
+      setError('Please enter a room name.');
       return;
     }
 
     if (trimmedName.length < 3) {
-      setError('Room name must be at least 3 characters');
+      setError('Room name must be at least 3 characters.');
       return;
     }
 
     if (participantCount < 2 || participantCount > 50) {
-      setError('Participants must be between 2 and 50');
+      setError('Participants must be between 2 and 50.');
       return;
     }
 
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // Replace this with your API call later
-    setTimeout(() => {
-      navigate('/room');
-    }, 800);
+      // Step 1:
+      // Generate the room's AES-256-GCM encryption key locally.
+      const cryptoKey = await generateEncryptionKey();
+
+      const secretKeyString = await exportKeyToString(cryptoKey);
+
+      // Step 2:
+      // Ask backend to create the room.
+      // The AES key is NOT sent to the backend.
+      const response = await roomApi.createRoom({
+        roomName: trimmedName,
+        maxParticipants: participantCount,
+        durationMinutes: 1440
+      });
+
+      if (!response.success || !response.room) {
+        throw new Error(
+          response.error || 'Failed to create room.'
+        );
+      }
+
+      const { roomId } = response.room;
+
+      // Step 3:
+      // Continue to the join/room flow with the AES key.
+      navigate(`/join/${roomId}#${secretKeyString}`);
+
+    } catch (err) {
+      console.error('[Create Room Error]:', err);
+
+      setError(
+        err.response?.data?.error ||
+        err.message ||
+        'An error occurred while creating the room.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,8 +107,10 @@ export const CreateRoomForm = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
+      <form
+        onSubmit={handleCreateRoom}
+        className="flex flex-col gap-5"
+      >
         {/* Room Name */}
         <div>
           <label className="block text-mono text-text-secondary text-xs mb-1.5">
@@ -100,11 +144,13 @@ export const CreateRoomForm = () => {
               onChange={(e) => setParticipants(e.target.value)}
               className="w-full appearance-none bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors"
             >
-              {[2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 50].map((count) => (
-                <option key={count} value={count}>
-                  {count} {count === 1 ? 'participant' : 'participants'}
-                </option>
-              ))}
+              {[2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 50].map(
+                (count) => (
+                  <option key={count} value={count}>
+                    {count} participants
+                  </option>
+                )
+              )}
             </select>
           </div>
 
@@ -129,4 +175,3 @@ export const CreateRoomForm = () => {
     </motion.div>
   );
 };
-
