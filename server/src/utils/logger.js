@@ -5,7 +5,7 @@ const logger = pino({
   level: env.LOG_LEVEL,
 
   transport:
-    env.NODE_ENV === 'development'
+    env.NODE_ENV
       ? {
           target: 'pino-pretty',
           options: {
