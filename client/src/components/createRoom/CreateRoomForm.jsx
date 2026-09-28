@@ -4,13 +4,11 @@ import { Loader2, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { roomApi } from '../../services/roomApi';
-import {
-  generateEncryptionKey,
-  exportKeyToString
-} from '../../crypto/keyManager';
+
 
 export const CreateRoomForm = () => {
   const [roomName, setRoomName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
   const [participants, setParticipants] = useState('5');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,11 +21,16 @@ export const CreateRoomForm = () => {
     setError('');
 
     const trimmedName = roomName.trim();
+    const trimmedOwnerName = ownerName.trim();
     const participantCount = Number(participants);
 
     // Client-side validation
     if (!trimmedName) {
       setError('Please enter a room name.');
+      return;
+    }
+    if (!trimmedOwnerName) {
+      setError('Please enter your name.');
       return;
     }
 
@@ -44,17 +47,9 @@ export const CreateRoomForm = () => {
     try {
       setLoading(true);
 
-      // Step 1:
-      // Generate the room's AES-256-GCM encryption key locally.
-      const cryptoKey = await generateEncryptionKey();
-
-      const secretKeyString = await exportKeyToString(cryptoKey);
-
-      // Step 2:
-      // Ask backend to create the room.
-      // The AES key is NOT sent to the backend.
       const response = await roomApi.createRoom({
         roomName: trimmedName,
+        ownerName: trimmedOwnerName,
         maxParticipants: participantCount,
         durationMinutes: 1440
       });
@@ -67,9 +62,7 @@ export const CreateRoomForm = () => {
 
       const { roomId } = response.room;
 
-      // Step 3:
-      // Continue to the join/room flow with the AES key.
-      navigate(`/join/${roomId}#${secretKeyString}`);
+      navigate(`/join/${roomId}`);
 
     } catch (err) {
       console.error('[Create Room Error]:', err);
@@ -127,6 +120,23 @@ export const CreateRoomForm = () => {
             placeholder="e.g. Production Backend"
           />
         </div>
+
+        <div>
+          <label className="block text-mono text-text-secondary text-xs mb-1.5">
+            OWNER NAME
+          </label>
+
+          <input
+            type="text"
+            value={ownerName}
+            onChange={(e) => setOwnerName(e.target.value)}
+            maxLength={60}
+
+            className="w-full bg-canvas-black border border-surface-border rounded-lg px-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors"
+            placeholder="e.g. Leader - Dravid"
+          />
+        </div>
+
 
         {/* Participants */}
         <div>

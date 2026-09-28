@@ -1,60 +1,83 @@
 const Room = require("../models/Room");
 const SharedFile = require("../models/SharedFile");
-const crypto = require("crypto");
 
 const logger = require("../utils/logger");
 
-// Generate random uppercase alphanumeric room ID (e.g., X7K29P)
-const generateRoomId = (length = 6) => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let result = "";
+const { generateRoomId } = require("../utils/roomId");
+const {
+  generateAccessKey,
+  hashAccessKey,
+  verifyAccessKey,
+} = require("../utils/accessKey");
 
-  const bytes = crypto.randomBytes(length);
-
-  for (let i = 0; i < length; i++) {
-    result += chars[bytes[i] % chars.length];
-  }
-
-  return result;
-};
-
-const generateDestroyToken = () => {
-  return crypto.randomBytes(32).toString("hex");
-};
-
-const hashDestroyToken = (token) => {
-  return crypto.createHash("sha256").update(token).digest("hex");
-};
 /**
  * POST /api/v1/rooms
  * Create a new temporary room.
  */
 async function createRoom(req, res) {
   try {
-    const { durationMinutes = 10, maxParticipants = 2 } = req.body;
+    const {
+      roomName,
+      ownerName,
+      durationMinutes = 1440,
+      maxParticipants = 5,
+    } = req.body;
 
-    // Validate duration
+    const trimmedRoomName = String(roomName || "").trim();
+    const trimmedOwnerName = String(ownerName || "").trim();
+
+    if (!trimmedRoomName || !trimmedOwnerName) {
+      return res.status(400).json({
+        success: false,
+        error: "Room name or Owner name is missing.",
+      });
+    }
+
+    if (trimmedRoomName.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: "Room name must be at least 3 characters.",
+      });
+    }
+
+    if (trimmedRoomName.length > 60) {
+      return res.status(400).json({
+        success: false,
+        error: "Room name must not exceed 60 characters.",
+      });
+    }
     const parsedDuration = Number(durationMinutes);
-    const validDurations = [5, 10, 30, 60];
 
-    const validDuration = validDurations.includes(parsedDuration)
-      ? parsedDuration
-      : 10;
 
-    // Validate participant limit
+    const validDuration =
+      Number.isInteger(parsedDuration) &&
+      parsedDuration > 0 &&
+      parsedDuration <= 1440
+        ? parsedDuration
+        : 1440;
+
     const parsedMaxParticipants = Number(maxParticipants);
 
-    const validMaxParticipants = Number.isInteger(parsedMaxParticipants)
-      ? Math.min(Math.max(parsedMaxParticipants, 2), 10)
-      : 2;
+    if (
+      !Number.isInteger(parsedMaxParticipants) ||
+      parsedMaxParticipants < 2 ||
+      parsedMaxParticipants > 50
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Participants must be between 2 and 50.",
+      });
+    }
 
-    // Generate unique room ID
     let roomId;
     let isUnique = false;
     let attempts = 0;
 
+    let accessKey;
+
     while (!isUnique && attempts < 10) {
       roomId = generateRoomId(6);
+      accessKey = generateAccessKey();
 
       const existingRoom = await Room.exists({ roomId });
 
@@ -80,30 +103,25 @@ async function createRoom(req, res) {
       });
     }
 
-    // Generate creator's secret token
-    const destroyToken = generateDestroyToken();
+    const accessKeyHash = await hashAccessKey(accessKey);
 
-    // Store only the hash
-    const destroyTokenHash = hashDestroyToken(destroyToken);
-
-    // Calculate expiration time
     const expiresAt = new Date(Date.now() + validDuration * 60 * 1000);
 
-    // Create room
     const room = await Room.create({
       roomId,
-      destroyTokenHash,
+      roomName: trimmedRoomName,
+      ownerName: trimmedOwnerName,
+      accessKeyHash,
       expiresAt,
-      maxParticipants: validMaxParticipants,
+      maxParticipants: parsedMaxParticipants,
       status: "active",
     });
 
-    // Production-safe structured log
     logger.info(
       {
         event: "room_created",
         roomId: room.roomId,
-        expiresAt: room.expiresAt.toISOString(),
+        roomName: room.roomName,
         maxParticipants: room.maxParticipants,
         durationMinutes: validDuration,
       },
@@ -114,7 +132,9 @@ async function createRoom(req, res) {
       success: true,
       room: {
         roomId: room.roomId,
-        destroyToken,
+        roomName: room.roomName,
+        ownerName: room.ownerName,
+        accessKey: accessKey,
         expiresAt: room.expiresAt,
         maxParticipants: room.maxParticipants,
         status: room.status,
@@ -171,6 +191,7 @@ async function getRoom(req, res) {
     });
   }
 }
+
 /**
  * DELETE /api/v1/rooms/:roomId
  * Delete a temporary room.
