@@ -8,6 +8,7 @@ const requiredEnvVariables = [
   "CLIENT_URL",
   "NODE_ENV",
   "LOG_LEVEL",
+  "JWT_SECRET",
 ];
 
 requiredEnvVariables.forEach((key) => {
@@ -22,4 +23,5 @@ module.exports = {
   CLIENT_URL:process.env.CLIENT_URL,
   NODE_ENV: process.env.NODE_ENV,
   LOG_LEVEL: process.env.LOG_LEVEL,
+  JWT_SECRET: process.env.JWT_SECRET,
 };
