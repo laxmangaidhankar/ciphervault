@@ -16,7 +16,6 @@ export const roomApi = {
     const response = await api.post('/api/v1/rooms', {
       roomName,
       ownerName,
-      maxParticipants,
       durationMinutes
     });
 

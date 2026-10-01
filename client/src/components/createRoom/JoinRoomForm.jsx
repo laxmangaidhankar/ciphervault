@@ -50,7 +50,7 @@ export const JoinRoomForm = () => {
 
     // Replace this with your API call later
     setTimeout(() => {
-      navigate('/room');
+      navigate(`/dashboard/${trimmedRoomKey.toUpperCase()}`);
     }, 800);
   };
 
