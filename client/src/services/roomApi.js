@@ -12,23 +12,38 @@ const api = axios.create({
 });
 
 export const roomApi = {
-  createRoom: async ({ roomName, ownerName, maxParticipants, durationMinutes = 1440 }) => {
+  createRoom: async ({ roomName, displayName, durationMinutes = 1440 }) => {
     const response = await api.post('/api/v1/rooms', {
       roomName,
-      ownerName,
+      displayName,
       durationMinutes
     });
 
     return response.data;
   },
 
-  getRoom: async (roomId) => {
-    const response = await api.get(`/v1/rooms/${roomId}`);
+ getRoomStatus: async (roomId) => {
+    const response = await api.get(
+      `/api/v1/rooms/${roomId}/status`
+    );
+
     return response.data;
   },
 
-  destroyRoom: async (roomId) => {
-    const response = await api.delete(`/v1/rooms/${roomId}`);
+   getRoom: async (roomId) => {
+    const response = await api.get(
+      `/api/v1/rooms/${roomId}`
+    );
+
+    return response.data;
+  },
+
+  joinRoom: async (roomId, data) => {
+    const response = await api.post(
+      `/api/v1/rooms/${roomId}/join`,
+      data
+    );
+
     return response.data;
   },
 
