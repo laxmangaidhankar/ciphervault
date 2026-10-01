@@ -11,12 +11,12 @@ export const Footer = () => {
           <div className="flex items-center gap-2 md:gap-3 mb-4">
             <div className="h-8 w-8 rounded-lg bg-brand-mint flex items-center justify-center">
               <span className="text-canvas-black font-bold">
-                C
+                S
               </span>
             </div>
 
             <h2 className="text-heading-lg text-text-primary tracking-tight text-xl">
-              CipherVault
+              SafeHouse
             </h2>
           </div>
 
@@ -32,7 +32,7 @@ export const Footer = () => {
         <div className="pt-8 border-t border-surface-border flex flex-col sm:flex-row items-center justify-between gap-4">
 
           <p className="text-mono text-text-muted text-xs">
-            © {new Date().getFullYear()} CipherVault. All rights reserved.
+            © {new Date().getFullYear()} SafeHouse. All rights reserved.
           </p>
 
           <p className="text-mono text-text-muted text-xs">

@@ -27,11 +27,11 @@ export const LandingNavbar = () => {
         {/* Brand */}
         <Link to="/" className="flex items-center gap-2 md:gap-3">
           <div className="h-8 w-8 rounded-lg bg-brand-mint flex items-center justify-center">
-            <span className="text-canvas-black font-bold">C</span>
+            <span className="text-canvas-black font-bold">S</span>
           </div>
 
           <span className="text-text-primary text-xl md:text-2xl font-bold tracking-tight">
-            CipherVault
+            SafeHouse
           </span>
         </Link>
 

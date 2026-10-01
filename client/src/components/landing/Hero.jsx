@@ -175,7 +175,7 @@ export const Hero = () => {
                     </p>
 
                     <p className="text-sm text-text-primary mt-1">
-                      30 minutes
+                      24 hours
                     </p>
                   </div>
 
