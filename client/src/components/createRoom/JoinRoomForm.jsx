@@ -17,7 +17,7 @@ export const JoinRoomForm = () => {
 
   const navigate = useNavigate();
 
-  // STEP 1
+  // STEP 1: Check whether room exists
   const handleRoomCheck = async (e) => {
     e.preventDefault();
 
@@ -55,12 +55,13 @@ export const JoinRoomForm = () => {
     }
   };
 
-  // STEP 2
+  // STEP 2: Authenticate and join room
   const handleJoinRoom = async (e) => {
     e.preventDefault();
 
     setError('');
 
+    const trimmedRoomKey = roomKey.trim();
     const trimmedAccessKey = accessKey.trim();
     const trimmedDisplayName = displayName.trim();
 
@@ -88,7 +89,7 @@ export const JoinRoomForm = () => {
 
     try {
       const response = await roomApi.joinRoom(
-        roomKey,
+        trimmedRoomKey,
         {
           accessKey: trimmedAccessKey,
           displayName: trimmedDisplayName
@@ -101,8 +102,9 @@ export const JoinRoomForm = () => {
         );
       }
 
-      // Backend has now authenticated the user
-      navigate(`/room/${roomKey}`);
+      // Backend has authenticated the user
+      // and created the session.
+      navigate(`/room/${trimmedRoomKey}`);
 
     } catch (err) {
       console.error('[Join Room Error]:', err);
@@ -116,6 +118,8 @@ export const JoinRoomForm = () => {
       setLoading(false);
     }
   };
+
+
 
   return (
     <motion.div
