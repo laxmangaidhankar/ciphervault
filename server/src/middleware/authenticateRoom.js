@@ -19,6 +19,13 @@ function authenticateRoom(req, res, next) {
       env.JWT_SECRET
     );
 
+    if (decoded.roomId !== req.params.roomId) {
+      return res.status(403).json({
+        success: false,
+        error: "This session does not belong to this room.",
+      });
+    }
+
     req.session = decoded;
 
     next();
@@ -30,4 +37,4 @@ function authenticateRoom(req, res, next) {
   }
 }
 
-module.exports = authenticateRoom;
+module.exports = {authenticateRoom};
