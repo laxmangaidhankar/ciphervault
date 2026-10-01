@@ -40,16 +40,11 @@ export default function App() {
             <Route path="/create" element={<CreateRoomPage />} />
 
             <Route path="/join" element={<JoinRoomPage />} />
-            <Route path="/dashboard" element={<RoomLayout />} />
+            <Route path="/room/:roomId" element={<RoomLayout />} />
 
             {/* Join a specific room */}
             <Route path="/join/:roomId" element={<JoinRoomPage />} />
 
-            {/* Protected room */}
-            <Route
-              path="/room/:roomId"
-              element={<ProtectedRoom />}
-            />
 
             {/* Unknown route */}
             <Route
