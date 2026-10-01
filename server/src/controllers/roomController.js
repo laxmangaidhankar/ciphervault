@@ -109,6 +109,12 @@ async function createRoom(req, res) {
       expiresAt: room.expiresAt,
     });
 
+    res.cookie("session", sessionToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      expires: room.expiresAt,
+    });
     logger.info(
       {
         event: "room_created",
@@ -130,7 +136,6 @@ async function createRoom(req, res) {
         status: room.status,
         createdAt: room.createdAt,
       },
-      sessionToken,
     });
   } catch (error) {
     logger.error(
@@ -147,7 +152,6 @@ async function createRoom(req, res) {
     });
   }
 }
-
 
 /**
  * GET /api/v1/rooms/:roomId/status
@@ -185,8 +189,6 @@ async function getRoomStatus(req, res) {
     });
   }
 }
-
-
 
 /**
  * GET /api/v1/rooms/:roomId
@@ -253,10 +255,7 @@ async function joinRoom(req, res) {
     }
 
     // Check room expiration
-    if (
-      
-      new Date(room.expiresAt).getTime() <= Date.now()
-    ) {
+    if (new Date(room.expiresAt).getTime() <= Date.now()) {
       return res.status(410).json({
         success: false,
         error: "This room has expired.",
@@ -266,7 +265,7 @@ async function joinRoom(req, res) {
     // Verify access key
     const accessKeyVerification = await verifyAccessKey(
       trimmedAccessKey,
-      room.accessKeyHash
+      room.accessKeyHash,
     );
 
     if (!accessKeyVerification) {
@@ -288,6 +287,12 @@ async function joinRoom(req, res) {
       expiresAt: room.expiresAt,
     });
 
+    res.cookie("session", sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      expires: room.expiresAt,
+    });
     return res.status(200).json({
       success: true,
 
@@ -303,8 +308,6 @@ async function joinRoom(req, res) {
         displayName: trimmedDisplayName,
         role: "member",
       },
-
-      sessionToken,
     });
   } catch (error) {
     logger.error(
@@ -313,7 +316,7 @@ async function joinRoom(req, res) {
         roomId: req.params.roomId,
         err: error,
       },
-      "Failed to join room"
+      "Failed to join room",
     );
 
     return res.status(500).json({
