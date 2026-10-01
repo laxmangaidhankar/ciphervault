@@ -20,25 +20,22 @@ const roomSchema = new mongoose.Schema(
       maxlength: 60,
     },
 
-    ownerName: {
+    displayName: {
       type: String,
       required: true,
       trim: true,
       minlength: 3,
       maxlength: 60,
     },
-    
-    // Maximum number of users allowed
-    maxParticipants: {
-      type: Number,
-      required: true,
-      default: 5,
-      min: 2,
-      max: 50,
-    },
+   
     accessKeyHash: {
       type: String,
       required: true,
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+      index: true,
     },
 
     // Current room state
