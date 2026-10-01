@@ -6,9 +6,12 @@ const API_BASE = config.apiBaseUrl;
 
 const api = axios.create({
   baseURL: API_BASE,
+
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+
+  withCredentials: true
 });
 
 export const roomApi = {
