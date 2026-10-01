@@ -193,6 +193,7 @@ async function joinRoom(req, res) {
   try {
     const { accessKey, displayName } = req.body;
     const { room } = req;
+    console.log(room);
 
     if (!accessKey || !displayName) {
       return res.status(400).json({
@@ -213,7 +214,7 @@ async function joinRoom(req, res) {
 
     // Check room expiration
     if (
-      room.status !== "active" ||
+      
       new Date(room.expiresAt).getTime() <= Date.now()
     ) {
       return res.status(410).json({
@@ -284,4 +285,5 @@ async function joinRoom(req, res) {
 module.exports = {
   createRoom,
   getRoom,
+  joinRoom,
 };
