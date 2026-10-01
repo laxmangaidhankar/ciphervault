@@ -15,19 +15,6 @@ import JoinRoomPage from './pages/JoinRoomPage';
 import RoomLayout from './layout/RoomLayout';
 
 
-// Protect the room route
-const ProtectedRoom = () => {
-  const { roomId } = useParams();
-
-  const verified = sessionStorage.getItem(`roomAccess:${roomId}`);
-
-  if (verified !== 'verified') {
-    return <Navigate to={`/join/${roomId}`} replace />;
-  }
-
-  return <RoomLayout />;
-};
-
 
 export default function App() {
   return (
@@ -40,13 +27,14 @@ export default function App() {
             <Route path="/create" element={<CreateRoomPage />} />
 
             <Route path="/join" element={<JoinRoomPage />} />
-            <Route path="/room/:roomId" element={<RoomLayout />} />
 
-            {/* Join a specific room */}
+            <Route
+              path="/room/:roomId"
+              element={<RoomLayout />}
+            />
+
             <Route path="/join/:roomId" element={<JoinRoomPage />} />
 
-
-            {/* Unknown route */}
             <Route
               path="*"
               element={<Navigate to="/" replace />}
