@@ -1,30 +1,68 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, KeyRound, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { roomApi } from '../../services/roomApi';
+
 export const JoinRoomForm = () => {
   const [roomKey, setRoomKey] = useState('');
   const [accessKey, setAccessKey] = useState('');
   const [displayName, setDisplayName] = useState('');
+
+  const [step, setStep] = useState(1);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  // STEP 1
+  const handleRoomCheck = async (e) => {
     e.preventDefault();
+
     setError('');
 
     const trimmedRoomKey = roomKey.trim();
-    const trimmedAccessKey = accessKey.trim();
-    const trimmedDisplayName = displayName.trim();
 
     if (!trimmedRoomKey) {
-      setError('Enter the room key');
+      setError('Enter the room ID');
       return;
     }
+
+    setLoading(true);
+
+    try {
+      const response = await roomApi.getRoomStatus(trimmedRoomKey);
+
+      if (!response.success || !response.room) {
+        throw new Error('Room not found.');
+      }
+
+      // Room exists
+      setStep(2);
+
+    } catch (err) {
+      console.error('[Room Check Error]:', err);
+
+      setError(
+        err.response?.data?.error ||
+        err.message ||
+        'Room not found.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // STEP 2
+  const handleJoinRoom = async (e) => {
+    e.preventDefault();
+
+    setError('');
+
+    const trimmedAccessKey = accessKey.trim();
+    const trimmedDisplayName = displayName.trim();
 
     if (!trimmedAccessKey) {
       setError('Enter the access key');
@@ -48,10 +86,35 @@ export const JoinRoomForm = () => {
 
     setLoading(true);
 
-    // Replace this with your API call later
-    setTimeout(() => {
-      navigate(`/dashboard/${trimmedRoomKey.toUpperCase()}`);
-    }, 800);
+    try {
+      const response = await roomApi.joinRoom(
+        roomKey,
+        {
+          accessKey: trimmedAccessKey,
+          displayName: trimmedDisplayName
+        }
+      );
+
+      if (!response.success) {
+        throw new Error(
+          response.error || 'Failed to join room.'
+        );
+      }
+
+      // Backend has now authenticated the user
+      navigate(`/room/${roomKey}`);
+
+    } catch (err) {
+      console.error('[Join Room Error]:', err);
+
+      setError(
+        err.response?.data?.error ||
+        err.message ||
+        'Failed to join room.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,15 +124,23 @@ export const JoinRoomForm = () => {
       exit={{ opacity: 0, x: -20 }}
       className="bg-surface-slate border border-surface-border p-8 rounded-2xl shadow-xl w-full"
     >
+
+      {/* Header */}
+
       <div className="mb-8">
         <h2 className="text-heading-lg text-text-primary mb-2 text-2xl">
           Join a room
         </h2>
 
         <p className="text-body text-text-secondary">
-          Enter your room and access keys to join securely.
+          {step === 1
+            ? 'Enter the room ID to continue.'
+            : 'Enter your access key and display name.'
+          }
         </p>
       </div>
+
+      {/* Error */}
 
       {error && (
         <div className="mb-4 p-3 bg-semantic-danger/10 border border-semantic-danger/30 text-semantic-danger rounded-lg text-sm">
@@ -77,93 +148,152 @@ export const JoinRoomForm = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {/* STEP 1 */}
 
-        {/* Room Key */}
-        <div>
-          <label className="block text-mono text-text-secondary text-xs mb-1.5">
-            ROOM KEY
-          </label>
+      {step === 1 && (
+        <form
+          onSubmit={handleRoomCheck}
+          className="flex flex-col gap-5"
+        >
 
-          <div className="relative">
-            <KeyRound
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary"
-            />
+          <div>
+            <label className="block text-mono text-text-secondary text-xs mb-1.5">
+              ROOM ID
+            </label>
+
+            <div className="relative">
+              <KeyRound
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary"
+              />
+
+              <input
+                type="text"
+                value={roomKey}
+                onChange={(e) => setRoomKey(e.target.value)}
+                autoComplete="off"
+                className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors font-mono"
+                placeholder="e.g. 482731"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-text-primary text-canvas-black rounded-button py-3 mt-3 font-mono text-xs uppercase tracking-wider hover:bg-brand-mint transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+          >
+            {loading && (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            )}
+
+            {loading ? 'Checking Room...' : 'Continue'}
+          </button>
+
+        </form>
+      )}
+
+      {/* STEP 2 */}
+
+      {step === 2 && (
+        <form
+          onSubmit={handleJoinRoom}
+          className="flex flex-col gap-5"
+        >
+
+          {/* Room ID - read only */}
+
+          <div>
+            <label className="block text-mono text-text-secondary text-xs mb-1.5">
+              ROOM ID
+            </label>
 
             <input
               type="text"
               value={roomKey}
-              onChange={(e) => setRoomKey(e.target.value)}
-              autoComplete="off"
-              className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors font-mono"
-              placeholder="ROOM-XXXX-XXXX"
-            />
-          </div>
-        </div>
-
-        {/* Access Key */}
-        <div>
-          <label className="block text-mono text-text-secondary text-xs mb-1.5">
-            ACCESS KEY
-          </label>
-
-          <div className="relative">
-            <KeyRound
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary"
-            />
-
-            <input
-              type="password"
-              value={accessKey}
-              onChange={(e) => setAccessKey(e.target.value)}
-              autoComplete="off"
-              className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors font-mono"
-              placeholder="Enter access key"
+              readOnly
+              className="w-full bg-canvas-black/50 border border-surface-border rounded-lg px-4 py-3 text-body text-text-secondary font-mono"
             />
           </div>
 
-          <p className="text-xs text-text-secondary mt-2">
-            Your access key determines what you can do in this room.
-          </p>
-        </div>
+          {/* Access Key */}
 
-        {/* Display Name */}
-        <div>
-          <label className="block text-mono text-text-secondary text-xs mb-1.5">
-            DISPLAY NAME
-          </label>
+          <div>
+            <label className="block text-mono text-text-secondary text-xs mb-1.5">
+              ACCESS KEY
+            </label>
 
-          <div className="relative">
-            <User
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary"
-            />
+            <div className="relative">
+              <KeyRound
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary"
+              />
 
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              maxLength={30}
-              autoComplete="nickname"
-              className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors"
-              placeholder="e.g. Laxman"
-            />
+              <input
+                type="password"
+                value={accessKey}
+                onChange={(e) => setAccessKey(e.target.value)}
+                autoComplete="off"
+                className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors font-mono"
+                placeholder="Enter access key"
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-text-primary text-canvas-black rounded-button py-3 mt-3 font-mono text-xs uppercase tracking-wider hover:bg-brand-mint transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
-        >
-          {loading && (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          )}
+          {/* Display Name */}
 
-          {loading ? 'Joining Room...' : 'Join Room'}
-        </button>
-      </form>
+          <div>
+            <label className="block text-mono text-text-secondary text-xs mb-1.5">
+              DISPLAY NAME
+            </label>
+
+            <div className="relative">
+              <User
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary"
+              />
+
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                maxLength={30}
+                autoComplete="nickname"
+                className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors"
+                placeholder="e.g. Laxman"
+              />
+            </div>
+          </div>
+
+          {/* Join */}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-text-primary text-canvas-black rounded-button py-3 mt-3 font-mono text-xs uppercase tracking-wider hover:bg-brand-mint transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+          >
+            {loading && (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            )}
+
+            {loading ? 'Joining Room...' : 'Join Room'}
+          </button>
+
+          {/* Back */}
+
+          <button
+            type="button"
+            onClick={() => {
+              setStep(1);
+              setAccessKey('');
+              setDisplayName('');
+              setError('');
+            }}
+            className="text-xs text-text-secondary hover:text-text-primary"
+          >
+            ← Change Room ID
+          </button>
+
+        </form>
+      )}
+
     </motion.div>
   );
 };
-

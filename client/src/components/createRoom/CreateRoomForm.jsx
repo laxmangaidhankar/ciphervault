@@ -5,11 +5,9 @@ import { motion } from 'framer-motion';
 
 import { roomApi } from '../../services/roomApi';
 
-
 export const CreateRoomForm = () => {
   const [roomName, setRoomName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
-  const [participants, setParticipants] = useState('5');
+  const [displayName, setOwnerName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,27 +18,22 @@ export const CreateRoomForm = () => {
 
     setError('');
 
-    const trimmedName = roomName.trim();
-    const trimmedOwnerName = ownerName.trim();
-    const participantCount = Number(participants);
+    const trimmedRoomName = roomName.trim();
+    const trimmedDisplayName = displayName.trim();
 
     // Client-side validation
-    if (!trimmedName) {
+    if (!trimmedRoomName) {
       setError('Please enter a room name.');
       return;
     }
-    if (!trimmedOwnerName) {
+
+    if (!trimmedDisplayName) {
       setError('Please enter your name.');
       return;
     }
 
-    if (trimmedName.length < 3) {
+    if (trimmedRoomName.length < 3) {
       setError('Room name must be at least 3 characters.');
-      return;
-    }
-
-    if (participantCount < 2 || participantCount > 50) {
-      setError('Participants must be between 2 and 50.');
       return;
     }
 
@@ -48,9 +41,8 @@ export const CreateRoomForm = () => {
       setLoading(true);
 
       const response = await roomApi.createRoom({
-        roomName: trimmedName,
-        ownerName: trimmedOwnerName,
-        maxParticipants: participantCount,
+        roomName: trimmedRoomName,
+        displayName: trimmedDisplayName,
         durationMinutes: 1440
       });
 
@@ -60,9 +52,17 @@ export const CreateRoomForm = () => {
         );
       }
 
-      const { roomId } = response.room;
 
-      navigate(`/join/${roomId}`);
+      const { roomId, accessKey } = response.room;
+
+      console.log(roomId);
+
+      // Navigate creator directly to dashboard
+      navigate(`/room/${roomId}`, {
+        state: {
+          accessKey
+        }
+      });
 
     } catch (err) {
       console.error('[Create Room Error]:', err);
@@ -123,12 +123,12 @@ export const CreateRoomForm = () => {
 
         <div>
           <label className="block text-mono text-text-secondary text-xs mb-1.5">
-            OWNER NAME
+            DISPLAY NAME
           </label>
 
           <input
             type="text"
-            value={ownerName}
+            value={displayName}
             onChange={(e) => setOwnerName(e.target.value)}
             maxLength={60}
 
@@ -137,32 +137,7 @@ export const CreateRoomForm = () => {
           />
         </div>
 
-
-        {/* Participants */}
         <div>
-          <label className="block text-mono text-text-secondary text-xs mb-1.5">
-            MAX PARTICIPANTS
-          </label>
-
-          <div className="relative">
-            <Users
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary"
-            />
-
-            <select
-              value={participants}
-              onChange={(e) => setParticipants(e.target.value)}
-              className="w-full appearance-none bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors"
-            >
-              {[2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 50].map(
-                (count) => (
-                  <option key={count} value={count}>
-                    {count} participants
-                  </option>
-                )
-              )}
-            </select>
-          </div>
 
           <p className="text-xs text-text-secondary mt-2">
             The room will automatically expire after 24 hours.
