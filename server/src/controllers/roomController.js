@@ -1,9 +1,11 @@
+const { v4: uuidv4 } = require("uuid");
 const Room = require("../models/Room");
 const SharedFile = require("../models/SharedFile");
-
 const logger = require("../utils/logger");
-
 const { generateRoomId } = require("../utils/roomId");
+
+const { generateRoomToken } = require("../utils/roomToken");
+
 const {
   generateAccessKey,
   hashAccessKey,
@@ -16,17 +18,12 @@ const {
  */
 async function createRoom(req, res) {
   try {
-    const {
-      roomName,
-      ownerName,
-      durationMinutes = 1440,
-      maxParticipants = 5,
-    } = req.body;
+    const { roomName, displayName, durationMinutes = 1440 } = req.body;
 
     const trimmedRoomName = String(roomName || "").trim();
-    const trimmedOwnerName = String(ownerName || "").trim();
+    const trimmedDisplayName = String(displayName || "").trim();
 
-    if (!trimmedRoomName || !trimmedOwnerName) {
+    if (!trimmedRoomName || !trimmedDisplayName) {
       return res.status(400).json({
         success: false,
         error: "Room name or Owner name is missing.",
@@ -48,26 +45,12 @@ async function createRoom(req, res) {
     }
     const parsedDuration = Number(durationMinutes);
 
-
     const validDuration =
       Number.isInteger(parsedDuration) &&
       parsedDuration > 0 &&
       parsedDuration <= 1440
         ? parsedDuration
         : 1440;
-
-    const parsedMaxParticipants = Number(maxParticipants);
-
-    if (
-      !Number.isInteger(parsedMaxParticipants) ||
-      parsedMaxParticipants < 2 ||
-      parsedMaxParticipants > 50
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: "Participants must be between 2 and 50.",
-      });
-    }
 
     let roomId;
     let isUnique = false;
@@ -110,11 +93,20 @@ async function createRoom(req, res) {
     const room = await Room.create({
       roomId,
       roomName: trimmedRoomName,
-      ownerName: trimmedOwnerName,
+      displayName: trimmedDisplayName,
       accessKeyHash,
       expiresAt,
-      maxParticipants: parsedMaxParticipants,
       status: "active",
+    });
+
+    const participantId = uuidv4();
+
+    const sessionToken = generateRoomToken({
+      roomId: room.roomId,
+      participantId,
+      displayName: room.displayName,
+      role: "owner",
+      expiresAt: room.expiresAt,
     });
 
     logger.info(
@@ -122,7 +114,6 @@ async function createRoom(req, res) {
         event: "room_created",
         roomId: room.roomId,
         roomName: room.roomName,
-        maxParticipants: room.maxParticipants,
         durationMinutes: validDuration,
       },
       "Room created",
@@ -133,13 +124,13 @@ async function createRoom(req, res) {
       room: {
         roomId: room.roomId,
         roomName: room.roomName,
-        ownerName: room.ownerName,
+        displayName: room.displayName,
         accessKey: accessKey,
         expiresAt: room.expiresAt,
-        maxParticipants: room.maxParticipants,
         status: room.status,
         createdAt: room.createdAt,
       },
+      sessionToken,
     });
   } catch (error) {
     logger.error(
@@ -169,6 +160,8 @@ async function getRoom(req, res) {
       success: true,
       room: {
         roomId: room.roomId,
+        roomName: room.roomName,
+        displayName: room.displayName,
         expiresAt: room.expiresAt,
         maxParticipants: room.maxParticipants,
         status: room.status,
@@ -193,96 +186,102 @@ async function getRoom(req, res) {
 }
 
 /**
- * DELETE /api/v1/rooms/:roomId
- * Delete a temporary room.
+ * POST /api/v1/rooms/:roomId/join
+ * verify access key + join room
  */
-async function destroyRoom(req, res) {
+async function joinRoom(req, res) {
   try {
+    const { accessKey, displayName } = req.body;
     const { room } = req;
 
-    if (!room) {
-      logger.warn(
-        {
-          event: "room_not_found",
-          roomId: req.params.roomId,
-        },
-        "Room not found",
-      );
-
-      return res.status(404).json({
+    if (!accessKey || !displayName) {
+      return res.status(400).json({
         success: false,
-        error: "Room not found.",
+        error: "Access key or display name is missing.",
       });
     }
 
-    // Authorization should happen before destruction
-    if (!req.roomAuthorized) {
-      logger.warn(
-        {
-          event: "room_destroy_unauthorized",
-          roomId: room.roomId,
-        },
-        "Unauthorized room destruction attempt",
-      );
+    const trimmedDisplayName = String(displayName).trim();
+    const trimmedAccessKey = String(accessKey).trim();
 
-      return res.status(403).json({
+    if (!trimmedDisplayName) {
+      return res.status(400).json({
         success: false,
-        error: "You are not authorized to destroy this room.",
+        error: "Display name cannot be empty.",
       });
     }
 
-    // Mark room as destroyed
-    room.status = "destroyed";
-    await room.save();
-
-    // Delete all shared files belonging to the room
-    const deleteResult = await SharedFile.deleteMany({
-      roomId: room.roomId,
-    });
-
-    // Notify connected clients
-    const io = req.app.get("io");
-
-    if (io) {
-      io.to(room.roomId).emit("room:destroyed", {
-        roomId: room.roomId,
-        message: "The room has been destroyed.",
+    // Check room expiration
+    if (
+      room.status !== "active" ||
+      new Date(room.expiresAt).getTime() <= Date.now()
+    ) {
+      return res.status(410).json({
+        success: false,
+        error: "This room has expired.",
       });
     }
 
-    // Production-safe structured log
-    logger.info(
-      {
-        event: "room_destroyed",
-        roomId: room.roomId,
-        deletedFiles: deleteResult.deletedCount,
-        socketNotificationSent: Boolean(io),
-      },
-      "Room destroyed",
+    // Verify access key
+    const accessKeyVerification = await verifyAccessKey(
+      trimmedAccessKey,
+      room.accessKeyHash
     );
+
+    if (!accessKeyVerification) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid access key.",
+      });
+    }
+
+    // Create participant ID
+    const participantId = uuidv4();
+
+    // Create JWT room session
+    const sessionToken = generateRoomToken({
+      roomId: room.roomId,
+      participantId,
+      displayName: trimmedDisplayName,
+      role: "member",
+      expiresAt: room.expiresAt,
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Room destroyed successfully.",
+
+      room: {
+        roomId: room.roomId,
+        roomName: room.roomName,
+        expiresAt: room.expiresAt,
+        status: room.status,
+      },
+
+      participant: {
+        participantId,
+        displayName: trimmedDisplayName,
+        role: "member",
+      },
+
+      sessionToken,
     });
   } catch (error) {
     logger.error(
       {
-        event: "room_destruction_failed",
+        event: "room_join_failed",
         roomId: req.params.roomId,
         err: error,
       },
-      "Failed to destroy room",
+      "Failed to join room"
     );
 
     return res.status(500).json({
       success: false,
-      error: "Failed to destroy room.",
+      error: "Failed to join room.",
     });
   }
 }
 module.exports = {
   createRoom,
   getRoom,
-  destroyRoom,
 };
