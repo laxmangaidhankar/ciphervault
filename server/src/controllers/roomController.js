@@ -148,6 +148,46 @@ async function createRoom(req, res) {
   }
 }
 
+
+/**
+ * GET /api/v1/rooms/:roomId/status
+ * Get status of the room.
+ */
+async function getRoomStatus(req, res) {
+  try {
+    const { room } = req;
+
+    return res.status(200).json({
+      success: true,
+      room: {
+        roomId: room.roomId,
+        roomName: room.roomName,
+        displayName: room.displayName,
+        expiresAt: room.expiresAt,
+        maxParticipants: room.maxParticipants,
+        status: room.status,
+        createdAt: room.createdAt,
+      },
+    });
+  } catch (error) {
+    logger.error(
+      {
+        event: "room_retrieval_failed",
+        roomId: req.params.roomId,
+        err: error,
+      },
+      "Failed to retrieve room status",
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: "Failed to retrieve room status.",
+    });
+  }
+}
+
+
+
 /**
  * GET /api/v1/rooms/:roomId
  * Get temporary room.
@@ -286,4 +326,5 @@ module.exports = {
   createRoom,
   getRoom,
   joinRoom,
+  getRoomStatus,
 };
