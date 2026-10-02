@@ -1,79 +1,147 @@
 const initSocketService = (io) => {
-  // Store participant socket maps per room
-  const roomParticipants = new Map(); // roomId => Set of socket.id
+  // roomId => Map(participantId => participant)
+  const roomParticipants = new Map();
 
-  io.on('connection', (socket) => {
+  io.on("connection", (socket) => {
     console.log(`[Socket Connected] ID: ${socket.id}`);
 
-    // Join a room
-    socket.on('join-room', ({ roomId }) => {
-      if (!roomId) return;
-      const cleanRoomId = roomId.toUpperCase();
+    // Join room
+    socket.on(
+      "join-room",
+      ({ roomId, participantId, displayName }) => {
+        if (!roomId || !participantId || !displayName) {
+          return;
+        }
 
-      socket.join(cleanRoomId);
-      socket.currentRoomId = cleanRoomId;
+        const cleanRoomId = roomId.toUpperCase();
 
-      if (!roomParticipants.has(cleanRoomId)) {
-        roomParticipants.set(cleanRoomId, new Set());
-      }
-      roomParticipants.get(cleanRoomId).add(socket.id);
+        socket.join(cleanRoomId);
 
-      const count = roomParticipants.get(cleanRoomId).size;
+        // Store information on this socket
+        socket.currentRoomId = cleanRoomId;
+        socket.participantId = participantId;
+        socket.displayName = displayName;
 
-      console.log(`[Socket Join] Socket ${socket.id} joined room ${cleanRoomId}. Total: ${count}`);
+        // Create room if it doesn't exist
+        if (!roomParticipants.has(cleanRoomId)) {
+          roomParticipants.set(cleanRoomId, new Map());
+        }
 
-      // Notify others in room
-      io.to(cleanRoomId).emit('room:joined', {
-        socketId: socket.id,
-        participantCount: count
-      });
-    });
+        const participants = roomParticipants.get(cleanRoomId);
 
-    // Leave a room
-    socket.on('leave-room', ({ roomId }) => {
-      if (!roomId) return;
-      const cleanRoomId = roomId.toUpperCase();
-
-      socket.leave(cleanRoomId);
-
-      if (roomParticipants.has(cleanRoomId)) {
-        roomParticipants.get(cleanRoomId).delete(socket.id);
-        const count = roomParticipants.get(cleanRoomId).size;
-
-        if (count === 0) {
-          roomParticipants.delete(cleanRoomId);
-        } else {
-          io.to(cleanRoomId).emit('participant:left', {
-            socketId: socket.id,
-            participantCount: count
+        // Create participant only if they don't already exist
+        if (!participants.has(participantId)) {
+          participants.set(participantId, {
+            participantId,
+            displayName,
+            socketIds: new Set(),
           });
         }
+
+        const participant = participants.get(participantId);
+
+        participant.socketIds.add(socket.id);
+
+        const participantList = Array.from(
+          participants.values()
+        ).map((participant) => ({
+          participantId: participant.participantId,
+          displayName: participant.displayName,
+        }));
+
+        console.log(
+          `[Socket Join] ${displayName} joined ${cleanRoomId}. ` +
+          `Total participants: ${participantList.length}`
+        );
+
+        io.to(cleanRoomId).emit("room:members", {
+          participants: participantList,
+          participantCount: participantList.length,
+        });
+      }
+    );
+
+    // Leave room
+    socket.on("leave-room", () => {
+      if (
+        !socket.currentRoomId ||
+        !socket.participantId
+      ) {
+        return;
+      }
+
+      removeParticipantConnection(
+        socket.currentRoomId,
+        socket.participantId,
+        socket.id
+      );
+    });
+
+    // Disconnect
+    socket.on("disconnect", () => {
+      console.log(
+        `[Socket Disconnected] ID: ${socket.id}`
+      );
+
+      if (
+        socket.currentRoomId &&
+        socket.participantId
+      ) {
+        removeParticipantConnection(
+          socket.currentRoomId,
+          socket.participantId,
+          socket.id
+        );
       }
     });
 
-    // Handle disconnect
-    socket.on('disconnect', () => {
-      console.log(`[Socket Disconnected] ID: ${socket.id}`);
-      if (socket.currentRoomId) {
-        const cleanRoomId = socket.currentRoomId;
-        if (roomParticipants.has(cleanRoomId)) {
-          roomParticipants.get(cleanRoomId).delete(socket.id);
-          const count = roomParticipants.get(cleanRoomId).size;
+    function removeParticipantConnection(
+      roomId,
+      participantId,
+      socketId
+    ) {
+      const participants = roomParticipants.get(roomId);
 
-          if (count === 0) {
-            roomParticipants.delete(cleanRoomId);
-          } else {
-            io.to(cleanRoomId).emit('participant:left', {
-              socketId: socket.id,
-              participantCount: count
-            });
-          }
-        }
+      if (!participants) {
+        return;
       }
-    });
+
+      const participant = participants.get(participantId);
+
+      if (!participant) {
+        return;
+      }
+
+      participant.socketIds.delete(socketId);
+
+      socket.leave(roomId);
+
+      if (participant.socketIds.size === 0) {
+        participants.delete(participantId);
+      }
+
+      // Remove empty room
+      if (participants.size === 0) {
+        roomParticipants.delete(roomId);
+        return;
+      }
+
+      // Send updated member list
+      const participantList = Array.from(
+        participants.values()
+      ).map((participant) => ({
+        participantId: participant.participantId,
+        displayName: participant.displayName,
+      }));
+
+      io.to(roomId).emit("room:members", {
+        participants: participantList,
+        participantCount: participantList.length,
+      });
+    }
   });
 };
 
 module.exports = {
-  initSocketService
+  initSocketService,
 };
