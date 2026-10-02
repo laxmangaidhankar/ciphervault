@@ -53,14 +53,19 @@ export const CreateRoomForm = () => {
       }
 
 
-      const { roomId, accessKey } = response.room;
+      const {
+        roomId,
+        accessKey,
+        roomName,
+        expiresAt
+      } = response.room;
 
-      console.log(roomId);
-
-      // Navigate creator directly to dashboard
-      navigate(`/room/${roomId}`, {
+      navigate('/room-created', {
         state: {
-          accessKey
+          roomId,
+          roomName,
+          accessKey,
+          expiresAt
         }
       });
 

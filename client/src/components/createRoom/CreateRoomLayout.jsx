@@ -78,7 +78,7 @@ export const RoomLayout = ({ children }) => {
           </div>
 
           <h1 className="text-text-primary tracking-tight text-xl font-semibold">
-            CipherVault
+            SafeHouse
           </h1>
         </Link>
 
