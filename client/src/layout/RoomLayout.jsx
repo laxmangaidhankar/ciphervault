@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { io } from 'socket.io-client';
+import config from "../config/env";
+
 
 import { Header } from './Header';
 import { ChatPanel } from '../components/room/ChatPanel';
@@ -10,12 +13,14 @@ import { roomApi } from '../services/roomApi';
 import RoomNotFound from '../pages/RoomNotFound';
 
 const RoomLayout = () => {
+
   const { roomId } = useParams();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  const [members, setMembers] = useState([]);
 
   useEffect(() => {
     const checkRoom = async () => {
@@ -66,6 +71,34 @@ const RoomLayout = () => {
     checkRoom();
   }, [roomId, navigate]);
 
+
+
+  useEffect(() => {
+    if (!room) return;
+
+    const socket = io(config.apiBaseUrl, {
+      withCredentials: true,
+    });
+
+    socket.emit("join-room", {
+      roomId: room.roomId,
+      displayName: room.displayName,
+      participantId: room.participantId,
+    });
+
+    socket.on("room:members", (data) => {
+      setMembers(data.participants);
+    });
+
+    return () => {
+      socket.emit("leave-room", {
+        roomId: room.roomId,
+      });
+
+      socket.disconnect();
+    };
+  }, [room]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-950 text-white">
@@ -81,25 +114,25 @@ const RoomLayout = () => {
   if (!room) {
     return null;
   }
-return (
-  <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-950 text-white">
-    <Header />
+  return (
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-950 text-white">
+      <Header room={room} />
 
-    <div className="flex flex-1 min-h-0 w-full">
-      <div className="w-100 shrink-0">
-        <ChatPanel />
-      </div>
+      <div className="flex flex-1 min-h-0 w-full">
+        <div className="w-100 shrink-0">
+          <ChatPanel />
+        </div>
 
-      <div className="flex-1 min-w-0">
-        <EnvFilesPanel />
-      </div>
+        <div className="flex-1 min-w-0">
+          <EnvFilesPanel />
+        </div>
 
-      <div className="w-100 shrink-0">
-        <MembersPanel />
+        <div className="w-100 shrink-0">
+          <MembersPanel room={room} members={members} />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default RoomLayout;
