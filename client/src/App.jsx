@@ -13,6 +13,7 @@ import LandingPage from './pages/LandingPage';
 import CreateRoomPage from './pages/CreateRoomPage';
 import JoinRoomPage from './pages/JoinRoomPage';
 import RoomLayout from './layout/RoomLayout';
+import RoomCreatedPage from './pages/RoomCreatedPage';
 
 
 
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/create" element={<CreateRoomPage />} />
 
             <Route path="/join" element={<JoinRoomPage />} />
+            <Route path="/room-created" element={<RoomCreatedPage />} />
 
             <Route
               path="/room/:roomId"
