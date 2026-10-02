@@ -29,8 +29,6 @@ const RoomLayout = () => {
           return;
         }
 
-        // Room exists.
-        // Now check whether current session can access it.
         const response = await roomApi.getRoom(roomId);
 
         if (!response.success || !response.room) {
@@ -83,18 +81,25 @@ const RoomLayout = () => {
   if (!room) {
     return null;
   }
+return (
+  <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-950 text-white">
+    <Header />
 
-  return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-950 text-white">
-      <Header />
-
-      <div className="flex flex-1 min-h-0">
+    <div className="flex flex-1 min-h-0 w-full">
+      <div className="w-100 shrink-0">
         <ChatPanel />
+      </div>
+
+      <div className="flex-1 min-w-0">
         <EnvFilesPanel />
+      </div>
+
+      <div className="w-100 shrink-0">
         <MembersPanel />
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default RoomLayout;
