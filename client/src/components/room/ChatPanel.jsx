@@ -5,8 +5,6 @@ export const ChatPanel = () => {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
 
-  // Temporary messages.
-  // Later these will come from Socket.io.
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -66,29 +64,19 @@ export const ChatPanel = () => {
   return (
     <div className="flex flex-col h-full bg-canvas-black overflow-hidden">
 
-      {/* Chat Header */}
-      <div className="p-4 border-b border-surface-border flex items-center justify-between bg-surface-elevated">
-
+      <div className="h-16 px-5 border-b border-surface-border flex items-center justify-between bg-surface-elevated">
         <div className="flex items-center gap-2">
-
           <div className="w-2 h-2 rounded-full bg-brand-mint" />
 
           <div>
             <h3 className="text-mono text-text-primary text-sm">
               ROOM CHAT
             </h3>
-
             <p className="text-xs text-text-muted mt-0.5">
               Team conversation
             </p>
           </div>
-
         </div>
-
-        <span className="text-xs text-brand-mint font-mono">
-          3 online
-        </span>
-
       </div>
 
 
@@ -116,19 +104,17 @@ export const ChatPanel = () => {
 
           <div
             key={msg.id}
-            className={`flex w-full ${
-              msg.isOwn
+            className={`flex w-full ${msg.isOwn
                 ? 'justify-end'
                 : 'justify-start'
-            }`}
+              }`}
           >
 
             <div
-              className={`max-w-[85%] flex flex-col ${
-                msg.isOwn
+              className={`max-w-[85%] flex flex-col ${msg.isOwn
                   ? 'items-end'
                   : 'items-start'
-              }`}
+                }`}
             >
 
               {/* Sender */}
@@ -147,11 +133,10 @@ export const ChatPanel = () => {
 
               {/* Message */}
               <div
-                className={`p-3 text-sm leading-relaxed ${
-                  msg.isOwn
+                className={`p-3 text-sm leading-relaxed ${msg.isOwn
                     ? 'bg-brand-mint text-canvas-black rounded-[16px_16px_4px_16px]'
                     : 'bg-surface-elevated text-text-primary border border-surface-border rounded-[16px_16px_16px_4px]'
-                }`}
+                  }`}
               >
                 {msg.message}
               </div>
@@ -173,20 +158,6 @@ export const ChatPanel = () => {
       </div>
 
 
-      {/* Encryption status */}
-      <div className="px-4 py-2 border-t border-surface-border bg-canvas-black">
-
-        <div className="flex items-center justify-center gap-2">
-
-          <div className="w-1.5 h-1.5 rounded-full bg-brand-mint" />
-
-          <span className="text-[10px] text-text-muted font-mono">
-            ROOM CHAT
-          </span>
-
-        </div>
-
-      </div>
 
 
       {/* Message Input */}

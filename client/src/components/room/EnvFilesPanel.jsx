@@ -85,40 +85,18 @@ export const EnvFilesPanel = () => {
   return (
     <main className="flex flex-col h-full min-w-0 bg-canvas-black overflow-hidden">
 
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-      <div className="flex-shrink-0 p-5 border-b border-surface-border bg-surface-elevated">
+
+      <div className="shrink-0 p-3 h-16 border-b border-surface-border bg-surface-elevated">
 
         <div className="flex items-center justify-between gap-4">
 
           {/* File information */}
-          <div className="flex items-center gap-3 min-w-0">
-
-            <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-canvas-black border border-surface-border flex items-center justify-center">
-              <Lock className="w-4 h-4 text-brand-mint" />
-            </div>
-
-            <div className="min-w-0">
-
-              <div className="flex items-center gap-2">
-
-                <h2 className="text-text-primary text-sm font-medium font-mono">
-                  .env
-                </h2>
-
-                <span className="px-2 py-0.5 rounded-full border border-surface-border text-[9px] text-brand-mint font-mono uppercase">
-                  encrypted
-                </span>
-
-              </div>
-
-              <p className="text-xs text-text-muted mt-1">
+          <div className="  border-b border-surface-border flex items-center bg-surface-elevated">
+            <div>
+              <p className="text-xs text-text-muted ">
                 Shared environment variables
               </p>
-
             </div>
-
           </div>
 
 
@@ -141,12 +119,7 @@ export const EnvFilesPanel = () => {
               Download
             </button>
 
-            <button
-              type="button"
-              className="p-2 rounded-button border border-surface-border text-text-secondary hover:text-text-primary transition-colors"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
+
 
           </div>
 
@@ -418,31 +391,6 @@ export const EnvFilesPanel = () => {
 
       </div>
 
-
-      {/* =====================================================
-          FOOTER
-      ====================================================== */}
-      <div className="flex-shrink-0 px-5 py-3 border-t border-surface-border bg-surface-elevated">
-
-        <div className="flex items-center justify-between gap-3">
-
-          <div className="flex items-center gap-2">
-
-            <Lock className="w-3 h-3 text-brand-mint" />
-
-            <span className="text-[10px] text-text-muted font-mono">
-              ENCRYPTED ROOM
-            </span>
-
-          </div>
-
-          <span className="text-[10px] text-text-muted font-mono">
-            Auto-sync enabled
-          </span>
-
-        </div>
-
-      </div>
 
     </main>
   );

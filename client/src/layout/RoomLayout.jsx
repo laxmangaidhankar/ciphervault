@@ -76,7 +76,7 @@ const RoomLayout = () => {
   useEffect(() => {
     if (!room) return;
 
-    const socket = io(config.apiBaseUrl, {
+    const socket = io("http://localhost:3000", {
       withCredentials: true,
     });
 
