@@ -203,8 +203,9 @@ async function getRoom(req, res) {
       room: {
         roomId: room.roomId,
         roomName: room.roomName,
-        displayName: room.displayName,
         expiresAt: room.expiresAt,
+        participantId: req.user.participantId,
+        displayName: req.user.displayName,
         maxParticipants: room.maxParticipants,
         status: room.status,
         createdAt: room.createdAt,
