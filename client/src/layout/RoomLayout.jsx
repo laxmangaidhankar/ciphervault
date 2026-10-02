@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import config from "../config/env";
@@ -9,19 +9,30 @@ import { ChatPanel } from '../components/room/ChatPanel';
 import { EnvFilesPanel } from '../components/room/EnvFilesPanel';
 import { MembersPanel } from '../components/room/MembersPanel';
 
+
 import { roomApi } from '../services/roomApi';
 import RoomNotFound from '../pages/RoomNotFound';
 
 const RoomLayout = () => {
-
   const { roomId } = useParams();
   const navigate = useNavigate();
+
+  const socketRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [members, setMembers] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const sendMessage = (message) => {
+    if (!socketRef.current) {
+      return;
+    }
 
+    socketRef.current.emit("chat:send", {
+      message,
+    });
+  };
   useEffect(() => {
     const checkRoom = async () => {
       try {
@@ -71,8 +82,6 @@ const RoomLayout = () => {
     checkRoom();
   }, [roomId, navigate]);
 
-
-
   useEffect(() => {
     if (!room) return;
 
@@ -80,24 +89,56 @@ const RoomLayout = () => {
       withCredentials: true,
     });
 
-    socket.emit("join-room", {
-      roomId: room.roomId,
-      displayName: room.displayName,
-      participantId: room.participantId,
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("[Socket] Connected:", socket.id);
+
+      socket.emit("join-room", {
+        roomId: room.roomId,
+        participantId: room.participantId,
+        displayName: room.displayName,
+      });
     });
 
     socket.on("room:members", (data) => {
+      console.log("[Socket] Members:", data);
+
       setMembers(data.participants);
     });
 
-    return () => {
-      socket.emit("leave-room", {
-        roomId: room.roomId,
-      });
+    socket.on("chat:message", (message) => {
+      console.log("[Chat] New message:", message);
 
+      setMessages((prev) => [
+        ...prev,
+        message,
+      ]);
+    });
+
+
+
+
+
+    socket.on("connect_error", (error) => {
+      console.error("[Socket] Connection error:", error);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("[Socket] Disconnected:", reason);
+    });
+
+    return () => {
+      socket.emit("leave-room");
       socket.disconnect();
+
+      socketRef.current = null;
     };
   }, [room]);
+
+
+
+
 
   if (loading) {
     return (
@@ -120,7 +161,9 @@ const RoomLayout = () => {
 
       <div className="flex flex-1 min-h-0 w-full">
         <div className="w-100 shrink-0">
-          <ChatPanel />
+          <ChatPanel messages={messages}
+            onSendMessage={sendMessage}
+            currentParticipantId={room.participantId} />
         </div>
 
         <div className="flex-1 min-w-0">

@@ -1,33 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send } from 'lucide-react';
 
-export const ChatPanel = () => {
+export const ChatPanel = ({ messages,
+  onSendMessage,
+  currentParticipantId, }) => {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
 
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: 'Rahul',
-      message: 'I added the DATABASE_URL variable.',
-      time: '12:01 PM',
-      isOwn: false,
-    },
-    {
-      id: 2,
-      sender: 'Laxman',
-      message: 'Great. I will add the JWT secret.',
-      time: '12:02 PM',
-      isOwn: true,
-    },
-    {
-      id: 3,
-      sender: 'Aditya',
-      message: 'Should we also add REDIS_URL?',
-      time: '12:03 PM',
-      isOwn: false,
-    },
-  ]);
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
@@ -46,18 +26,8 @@ export const ChatPanel = () => {
 
     if (!trimmedMessage) return;
 
-    const newMessage = {
-      id: Date.now(),
-      sender: 'Laxman',
-      message: trimmedMessage,
-      time: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      isOwn: true,
-    };
+    onSendMessage(trimmedMessage);
 
-    setMessages((prev) => [...prev, newMessage]);
     setInputValue('');
   };
 
@@ -80,6 +50,7 @@ export const ChatPanel = () => {
       </div>
 
 
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
 
@@ -100,58 +71,54 @@ export const ChatPanel = () => {
         )}
 
 
-        {messages.map((msg) => (
+        {messages.map((msg) => {
 
-          <div
-            key={msg.id}
-            className={`flex w-full ${msg.isOwn
-                ? 'justify-end'
-                : 'justify-start'
-              }`}
-          >
+          const isOwn =
+            msg.participantId === currentParticipantId;
 
+          return (
             <div
-              className={`max-w-[85%] flex flex-col ${msg.isOwn
-                  ? 'items-end'
-                  : 'items-start'
+              key={msg.messageId}
+              className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'
                 }`}
             >
-
-              {/* Sender */}
-              {!msg.isOwn && (
-                <span className="text-xs text-brand-mint font-mono mb-1">
-                  {msg.sender}
-                </span>
-              )}
-
-              {msg.isOwn && (
-                <span className="text-xs text-text-muted font-mono mb-1">
-                  You
-                </span>
-              )}
-
-
-              {/* Message */}
               <div
-                className={`p-3 text-sm leading-relaxed ${msg.isOwn
-                    ? 'bg-brand-mint text-canvas-black rounded-[16px_16px_4px_16px]'
-                    : 'bg-surface-elevated text-text-primary border border-surface-border rounded-[16px_16px_16px_4px]'
+                className={`max-w-[85%] flex flex-col ${isOwn ? 'items-end' : 'items-start'
                   }`}
               >
-                {msg.message}
+
+                {!isOwn && (
+                  <span className="text-xs text-brand-mint font-mono mb-1">
+                    {msg.displayName}
+                  </span>
+                )}
+
+                {isOwn && (
+                  <span className="text-xs text-text-muted font-mono mb-1">
+                    You
+                  </span>
+                )}
+
+                <div
+                  className={`p-3 text-sm leading-relaxed ${isOwn
+                    ? 'bg-brand-mint text-canvas-black rounded-[16px_16px_4px_16px]'
+                    : 'bg-surface-elevated text-text-primary border border-surface-border rounded-[16px_16px_16px_4px]'
+                    }`}
+                >
+                  {msg.message}
+                </div>
+
+                <span className="text-[10px] text-text-muted mt-1">
+                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+
               </div>
-
-
-              {/* Time */}
-              <span className="text-[10px] text-text-muted mt-1">
-                {msg.time}
-              </span>
-
             </div>
-
-          </div>
-
-        ))}
+          );
+        })}
 
         <div ref={messagesEndRef} />
 
