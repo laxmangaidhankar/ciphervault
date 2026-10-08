@@ -330,7 +330,7 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
       {/* =====================================================
           TOOLBAR
       ====================================================== */}
-      <div className="flex-shrink-0 px-5 py-3 border-b border-surface-border">
+      <div className="shrink-0 px-5 py-3 border-b border-surface-border">
 
         <div className="flex items-center justify-between gap-3">
 
