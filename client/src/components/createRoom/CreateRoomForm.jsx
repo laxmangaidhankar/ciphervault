@@ -4,6 +4,11 @@ import { Loader2, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { roomApi } from '../../services/roomApi';
+import {
+  createRoomEncryptionKey,
+  getRoomEncryptionKey,
+  getOrCreateIdentity,
+} from '../../crypto/roomKeyManager';
 
 export const CreateRoomForm = () => {
   const [roomName, setRoomName] = useState('');
@@ -60,6 +65,17 @@ export const CreateRoomForm = () => {
         expiresAt
       } = response.room;
 
+
+
+      await createRoomEncryptionKey(roomId);
+
+      const storedRoomKey =
+        await getRoomEncryptionKey(roomId);
+
+
+      await getOrCreateIdentity();
+
+
       navigate('/room-created', {
         state: {
           roomId,
@@ -70,7 +86,6 @@ export const CreateRoomForm = () => {
       });
 
     } catch (err) {
-      console.error('[Create Room Error]:', err);
 
       setError(
         err.response?.data?.error ||
