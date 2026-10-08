@@ -8,6 +8,10 @@ import {
 } from './keyManager';
 
 
+import {requireChatEncryptionKey, saveChatEncryptionKey} from './chatKeyManager';
+
+
+
 // ----------------------------------------
 // Wrap Room AES Key
 // ----------------------------------------
@@ -31,6 +35,8 @@ export const wrapRoomKey = async (
   // Export Room AES key to raw bytes
   const roomKeyString =
     await exportKeyToString(roomKey);
+
+  
 
   const roomKeyBytes =
     base64UrlToArrayBuffer(roomKeyString);
@@ -62,6 +68,43 @@ export const wrapRoomKey = async (
       arrayBufferToBase64Url(iv),
   };
 };
+
+
+export const wrapChatEncryptionKey = async (
+  roomId,
+  pairwiseKey
+) => {
+  const chatKey =
+    await requireChatEncryptionKey(roomId);
+
+  return wrapRoomKey(
+    chatKey,
+    pairwiseKey
+  );
+};
+
+export const unwrapAndSaveChatEncryptionKey =
+  async (
+    roomId,
+    wrappedKey,
+    iv,
+    pairwiseKey
+  ) => {
+    const chatKey =
+      await unwrapRoomKey(
+        wrappedKey,
+        iv,
+        pairwiseKey
+      );
+
+    await saveChatEncryptionKey(
+      roomId,
+      chatKey
+    );
+
+    return chatKey;
+  };
+
 
 
 // ----------------------------------------
