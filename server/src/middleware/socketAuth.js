@@ -57,10 +57,7 @@ const socketAuth = (socket, next) => {
     next();
 
   } catch (error) {
-    console.error(
-      '[Socket Auth Error]',
-      error.message
-    );
+   
 
     next(
       new Error('Socket authentication failed.')

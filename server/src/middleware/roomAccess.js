@@ -28,7 +28,6 @@ const verifyRoomActive = async (req, res, next) => {
     req.room = room;
     next();
   } catch (error) {
-    console.error(`[Room Access Middleware Error]: ${error.message}`);
     return res.status(500).json({ error: 'Internal server error while verifying room status.' });
   }
 };
