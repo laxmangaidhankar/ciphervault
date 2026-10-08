@@ -16,7 +16,6 @@ import RoomLayout from './layout/RoomLayout';
 import RoomCreatedPage from './pages/RoomCreatedPage';
 
 
-
 export default function App() {
   return (
     <BrowserRouter>
