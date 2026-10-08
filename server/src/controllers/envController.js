@@ -14,8 +14,6 @@ const saveEnv = async (req, res) => {
     const { roomId } = req.params;
     const { encryptedEnv } = req.body;
 
-    console.log(roomId);
-
     if (!roomId) {
       return res.status(400).json({
         message: "Room ID is required.",
@@ -61,15 +59,12 @@ const saveEnv = async (req, res) => {
     // Store encrypted payload in Redis
     await saveEncryptedEnv(roomId, encryptedEnv, ttl);
 
-    console.log(req.user);
     emitEnvUpdated(roomId, req.user.participantId);
 
     return res.status(200).json({
       message: "Encrypted ENV saved successfully.",
     });
   } catch (error) {
-    console.error("[ENV] Failed to save ENV:", error);
-
     return res.status(500).json({
       message: "Failed to save ENV data.",
     });
@@ -80,7 +75,6 @@ const saveEnv = async (req, res) => {
 const getEnv = async (req, res) => {
   try {
     const { roomId } = req.params;
-    console.log(roomId);
 
     if (!roomId) {
       return res.status(400).json({
@@ -117,8 +111,6 @@ const getEnv = async (req, res) => {
       encryptedEnv,
     });
   } catch (error) {
-    console.error("[ENV] Failed to get ENV:", error);
-
     return res.status(500).json({
       message: "Failed to retrieve ENV data.",
     });
@@ -142,8 +134,6 @@ const deleteEnv = async (req, res) => {
       message: "ENV data deleted successfully.",
     });
   } catch (error) {
-    console.error("[ENV] Failed to delete ENV:", error);
-
     return res.status(500).json({
       message: "Failed to delete ENV data.",
     });

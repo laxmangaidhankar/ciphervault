@@ -1,6 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
 const Room = require("../models/Room");
-const SharedFile = require("../models/SharedFile");
 const logger = require("../utils/logger");
 const { generateRoomId } = require("../utils/roomId");
 
@@ -236,7 +235,6 @@ async function joinRoom(req, res) {
   try {
     const { accessKey, displayName } = req.body;
     const { room } = req;
-    console.log(room);
 
     if (!accessKey || !displayName) {
       return res.status(400).json({
