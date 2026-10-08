@@ -2,6 +2,16 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import config from "../config/env";
+import {
+  getChatEncryptionKey,
+  requireChatEncryptionKey,
+  wrapChatEncryptionKey,
+  unwrapAndSaveChatEncryptionKey,
+} from "../crypto/chatKeyManager";
+
+import { encryptData } from '../crypto/encryptData';
+import { decryptData } from '../crypto/decryptData';
+
 
 import {
   getRoomEncryptionKey,
@@ -26,6 +36,8 @@ import {
   deriveSharedSecret,
 } from '../crypto/ecdhKeyManager';
 
+
+
 import {
   arrayBufferToBase64Url,
   base64UrlToArrayBuffer,
@@ -42,6 +54,8 @@ const RoomLayout = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
 
+const pendingChatKeyRequestsRef =
+  useRef(new Map());
 
   const socketRef = useRef(null);
   const [roomKeyReady, setRoomKeyReady] = useState(false);
@@ -191,15 +205,159 @@ const RoomLayout = () => {
   };
 
 
-  const sendMessage = (message) => {
-    if (!socketRef.current) {
+
+  const shareChatKeyWithParticipant = async (
+    socket,
+    participantId
+  ) => {
+    try {
+      console.log(
+        "[Chat Crypto] Attempting to share Chat Key with:",
+        participantId
+      );
+
+      const chatKey =
+        await requireChatEncryptionKey(
+          roomId
+        );
+
+      if (!chatKey) {
+        console.log(
+          "[Chat Crypto] I don't have the Chat Key."
+        );
+
+        return;
+      }
+
+      const pairwiseKey =
+        pairwiseKeysRef.current.get(
+          participantId
+        );
+
+      if (!pairwiseKey) {
+        console.log(
+          "[Chat Crypto] Pairwise key unavailable for:",
+          participantId
+        );
+
+        return;
+      }
+
+      const wrapped =
+        await wrapChatEncryptionKey(
+          roomId,
+          pairwiseKey
+        );
+
+      socket.emit(
+        "chat:key:share",
+        {
+          recipientParticipantId:
+            participantId,
+
+          wrappedKey:
+            wrapped.wrappedKey,
+
+          iv:
+            wrapped.iv,
+        }
+      );
+
+      console.log(
+        `[Chat Crypto] Chat Key shared with ${participantId}`
+      );
+
+    } catch (error) {
+      console.error(
+        "[Chat Crypto] Failed to share Chat Key:",
+        error
+      );
+    }
+  };
+
+const requestChatKeyIfNeeded = async (socket) => {
+  try {
+    const existingChatKey =
+      await getChatEncryptionKey(roomId);
+
+    if (existingChatKey) {
+      console.log(
+        `[Chat Crypto] Chat Key already available for ${roomId}`
+      );
+
       return;
     }
 
-    socketRef.current.emit("chat:send", {
-      message,
-    });
+    console.log(
+      `[Chat Crypto] No Chat Key found for ${roomId}. Requesting...`
+    );
+
+    socket.emit("chat:key:request");
+
+  } catch (error) {
+    console.error(
+      "[Chat Crypto] Failed to check Chat Key:",
+      error
+    );
+  }
+};
+
+
+
+
+  const sendMessage = async (message) => {
+    try {
+      if (!roomId) {
+        throw new Error("Room ID is missing.");
+      }
+
+      const socket = socketRef.current;
+
+      if (!socket) {
+        throw new Error("Socket connection is not ready.");
+      }
+
+      const trimmedMessage =
+        message.trim();
+
+      if (!trimmedMessage) {
+        return;
+      }
+
+      const chatKey =
+        await requireChatEncryptionKey(
+          roomId
+        );
+
+      console.log(
+        "[Chat] Encrypting message..."
+      );
+
+      const encryptedMessage =
+        await encryptData(
+          trimmedMessage,
+          chatKey
+        );
+
+      socket.emit("chat:send", {
+        ciphertext:
+          encryptedMessage.ciphertext,
+
+        iv:
+          encryptedMessage.iv,
+      });
+
+    } catch (error) {
+      console.error(
+        "[Chat] Failed to encrypt message:",
+        error
+      );
+
+      throw error;
+    }
   };
+
+
   useEffect(() => {
     const checkRoom = async () => {
       try {
@@ -315,6 +473,94 @@ const RoomLayout = () => {
     );
 
 
+    socket.on(
+  "chat:key:request",
+  async (data) => {
+    try {
+      console.log(
+        "[Chat Crypto] Chat Key requested by:",
+        data.participantId
+      );
+
+      const pairwiseKey =
+        pairwiseKeysRef.current.get(
+          data.participantId
+        );
+
+      if (!pairwiseKey) {
+  pendingChatKeyRequestsRef.current.set(
+    data.participantId,
+    true
+  );
+
+  return;
+}
+
+      await shareChatKeyWithParticipant(
+        socket,
+        data.participantId
+      );
+
+    } catch (error) {
+      console.error(
+        "[Chat Crypto] Failed to process Chat Key request:",
+        error
+      );
+    }
+  }
+);
+
+
+
+socket.on(
+  "chat:key:share",
+  async (data) => {
+    try {
+      if (
+        data.recipientParticipantId !==
+        room.participantId
+      ) {
+        return;
+      }
+
+      console.log(
+        "[Chat Crypto] Chat Key received."
+      );
+
+      const pairwiseKey =
+        pairwiseKeysRef.current.get(
+          data.senderParticipantId
+        );
+
+      if (!pairwiseKey) {
+        console.error(
+          "[Chat Crypto] Pairwise key not found."
+        );
+
+        return;
+      }
+
+      await unwrapAndSaveChatEncryptionKey(
+        roomId,
+        data.wrappedKey,
+        data.iv,
+        pairwiseKey
+      );
+
+      console.log(
+        "[Chat Crypto] Chat Key saved successfully."
+      );
+
+    } catch (error) {
+      console.error(
+        "[Chat Crypto] Failed to unwrap Chat Key:",
+        error
+      );
+    }
+  }
+);
+
+
 
 
     socket.on(
@@ -381,41 +627,53 @@ const RoomLayout = () => {
     });
 
     socket.on(
-      "key:existing-participants",
-      async (data) => {
+  "key:existing-participants",
+  async (data) => {
+    try {
+      const keyMap = {};
 
+      for (
+        const participant
+        of data.participants
+      ) {
+        keyMap[
+          participant.participantId
+        ] = {
+          displayName:
+            participant.displayName,
 
-        const keyMap = {};
+          publicKey:
+            participant.publicKey,
+        };
 
-        for (
-          const participant
-          of data.participants
-        ) {
-          keyMap[
-            participant.participantId
-          ] = {
-            displayName:
-              participant.displayName,
-
-            publicKey:
-              participant.publicKey,
-          };
-
-          await derivePairwiseKeyForParticipant(
-            participant.participantId,
-            participant.publicKey
-          );
-        }
-
-        setParticipantPublicKeys(
-          keyMap
+        await derivePairwiseKeyForParticipant(
+          participant.participantId,
+          participant.publicKey
         );
-
-        // Creator may already have the Room Key.
-        // Joining member may need to request it.
-        await requestRoomKeyIfNeeded(socket);
       }
-    );
+
+      setParticipantPublicKeys(
+        keyMap
+      );
+
+      // Check whether we already have the Room Key.
+      // If not, request it from an existing participant.
+      await requestRoomKeyIfNeeded(socket);
+
+      // Check whether we already have the Chat Key.
+      // If not, request it from an existing participant.
+      await requestChatKeyIfNeeded(socket);
+
+    } catch (error) {
+      console.error(
+        "[Crypto] Failed to process existing participants:",
+        error
+      );
+    }
+  }
+);
+
+
     socket.on(
       "key:participant-public",
       async (data) => {
@@ -456,18 +714,84 @@ const RoomLayout = () => {
           );
         }
 
+        const hasPendingChatKeyRequest =
+  pendingChatKeyRequestsRef.current.has(
+    data.participantId
+  );
+
+if (hasPendingChatKeyRequest) {
+  await shareChatKeyWithParticipant(
+    socket,
+    data.participantId
+  );
+
+  pendingChatKeyRequestsRef.current.delete(
+    data.participantId
+  );
+}
+
+
         // Check/request Room Key for ourselves
         await requestRoomKeyIfNeeded(socket);
+        await requestChatKeyIfNeeded(socket);
       }
     );
 
-    socket.on("chat:message", (message) => {
+    socket.on(
+      "chat:message",
+      async (encryptedMessage) => {
+        try {
+          console.log(
+            "[Chat] Encrypted message received"
+          );
 
-      setMessages((prev) => [
-        ...prev,
-        message,
-      ]);
-    });
+          const chatKey =
+            await requireChatEncryptionKey(
+              roomId
+            );
+
+          const decryptedMessage =
+            await decryptData(
+              {
+                ciphertext:
+                  encryptedMessage.ciphertext,
+
+                iv:
+                  encryptedMessage.iv,
+              },
+              chatKey
+            );
+
+          const chatMessage = {
+            messageId:
+              encryptedMessage.messageId,
+
+            participantId:
+              encryptedMessage.participantId,
+
+            displayName:
+              encryptedMessage.displayName,
+
+            message:
+              decryptedMessage,
+
+            timestamp:
+              encryptedMessage.timestamp,
+          };
+
+          setMessages((prev) => [
+            ...prev,
+            chatMessage,
+          ]);
+
+        } catch (error) {
+          console.error(
+            "[Chat] Failed to decrypt message:",
+            error
+          );
+        }
+      }
+    );
 
 
     return () => {
