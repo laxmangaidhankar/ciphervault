@@ -1,15 +1,34 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
+
+let socketIO = null;
+
+const emitEnvUpdated = (roomId, updatedBy) => {
+  if (!socketIO) {
+    return;
+  }
+
+  socketIO.to(roomId).emit("env:updated", {
+    roomId,
+    updatedBy,
+  });
+};
 
 const initSocketService = (io) => {
+  socketIO = io;
   // roomId => Map(participantId => participant)
   const roomParticipants = new Map();
 
   io.on("connection", (socket) => {
-    console.log(`[Socket Connected] ID: ${socket.id}`);
+    //join-room
+    socket.on("join-room", () => {
+      const { roomId, participantId, displayName } = socket.user;
 
-    // Join room
-    socket.on("join-room", ({ roomId, participantId, displayName }) => {
       if (!roomId || !participantId || !displayName) {
+        return;
+      }
+
+      // Prevent the same socket from joining twice
+      if (socket.currentRoomId) {
         return;
       }
 
@@ -35,6 +54,7 @@ const initSocketService = (io) => {
           participantId,
           displayName,
           socketIds: new Set(),
+          publicKey: null,
         });
       }
 
@@ -42,24 +62,42 @@ const initSocketService = (io) => {
 
       participant.socketIds.add(socket.id);
 
+      //memebers list who join in the room
       const participantList = Array.from(participants.values()).map(
         (participant) => ({
           participantId: participant.participantId,
+
           displayName: participant.displayName,
         }),
       );
 
-      console.log(
-        `[Socket Join] ${displayName} joined ${cleanRoomId}. ` +
-          `Total participants: ${participantList.length}`,
-      );
-
       io.to(cleanRoomId).emit("room:members", {
         participants: participantList,
+
         participantCount: participantList.length,
+      });
+
+      //public key if existing available
+      const existingPublicKeys = Array.from(participants.values())
+        .filter(
+          (participant) =>
+            participant.publicKey &&
+            participant.participantId !== participantId,
+        )
+        .map((participant) => ({
+          participantId: participant.participantId,
+
+          displayName: participant.displayName,
+
+          publicKey: participant.publicKey,
+        }));
+
+      socket.emit("key:existing-participants", {
+        participants: existingPublicKeys,
       });
     });
 
+    //chat
     socket.on("chat:send", ({ message }) => {
       if (!socket.currentRoomId || !socket.participantId) {
         return;
@@ -73,16 +111,123 @@ const initSocketService = (io) => {
 
       const chatMessage = {
         messageId: crypto.randomUUID(),
+
         participantId: socket.participantId,
+
         displayName: socket.displayName,
+
         message: trimmedMessage,
+
         timestamp: new Date().toISOString(),
       };
 
       io.to(socket.currentRoomId).emit("chat:message", chatMessage);
     });
 
-    // Leave room
+    //public key sharing
+    socket.on("key:publish", ({ publicKey }) => {
+      if (!socket.currentRoomId || !socket.participantId) {
+        return;
+      }
+
+      if (typeof publicKey !== "string" || !publicKey) {
+        return;
+      }
+
+      const participants = roomParticipants.get(socket.currentRoomId);
+
+      if (!participants) {
+        return;
+      }
+
+      const participant = participants.get(socket.participantId);
+
+      if (!participant) {
+        return;
+      }
+
+      participant.publicKey = publicKey;
+
+      //public key sharing to each members
+      socket.to(socket.currentRoomId).emit("key:participant-public", {
+        participantId: socket.participantId,
+
+        displayName: socket.displayName,
+
+        publicKey,
+      });
+    });
+
+    socket.on("room:key:request", () => {
+      if (!socket.currentRoomId || !socket.participantId) {
+        return;
+      }
+
+      /*
+       * Tell every other participant:
+       *
+       * "This participant needs the Room Key."
+       *
+       * The requester does not receive
+       * their own request.
+       */
+      socket.to(socket.currentRoomId).emit("room:key:request", {
+        participantId: socket.participantId,
+
+        displayName: socket.displayName,
+      });
+    });
+
+    //ecrypted way room key sharing with ecdh
+    socket.on(
+      "room:key:share",
+      ({ recipientParticipantId, wrappedKey, iv }) => {
+        if (!socket.currentRoomId || !socket.participantId) {
+          return;
+        }
+
+        if (!recipientParticipantId || !wrappedKey || !iv) {
+          return;
+        }
+
+        const participants = roomParticipants.get(socket.currentRoomId);
+
+        if (!participants) {
+          return;
+        }
+
+        /*
+         * Verify that the recipient is
+         * actually inside this room.
+         */
+        const recipient = participants.get(recipientParticipantId);
+
+        if (!recipient) {
+          return;
+        }
+
+        /*
+         * The server ONLY forwards the encrypted
+         * / wrapped Room Key.
+         *
+         * Server never sees:
+         *
+         * - Room AES Key
+         * - Pairwise AES Key
+         * - Plaintext ENV values
+         */
+        io.to(socket.currentRoomId).emit("room:key:share", {
+          senderParticipantId: socket.participantId,
+
+          recipientParticipantId,
+
+          wrappedKey,
+
+          iv,
+        });
+      },
+    );
+
     socket.on("leave-room", () => {
       if (!socket.currentRoomId || !socket.participantId) {
         return;
@@ -95,10 +240,7 @@ const initSocketService = (io) => {
       );
     });
 
-    // Disconnect
     socket.on("disconnect", () => {
-      console.log(`[Socket Disconnected] ID: ${socket.id}`);
-
       if (socket.currentRoomId && socket.participantId) {
         removeParticipantConnection(
           socket.currentRoomId,
@@ -125,26 +267,32 @@ const initSocketService = (io) => {
 
       socket.leave(roomId);
 
+      /*
+       * Remove participant only when
+       * their last socket disconnects.
+       */
       if (participant.socketIds.size === 0) {
         participants.delete(participantId);
       }
 
-      // Remove empty room
+      //there is no one in the room
       if (participants.size === 0) {
         roomParticipants.delete(roomId);
+
         return;
       }
 
-      // Send updated member list
       const participantList = Array.from(participants.values()).map(
         (participant) => ({
           participantId: participant.participantId,
+
           displayName: participant.displayName,
         }),
       );
 
       io.to(roomId).emit("room:members", {
         participants: participantList,
+
         participantCount: participantList.length,
       });
     }
@@ -153,4 +301,5 @@ const initSocketService = (io) => {
 
 module.exports = {
   initSocketService,
+  emitEnvUpdated,
 };
