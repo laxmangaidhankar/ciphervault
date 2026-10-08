@@ -98,14 +98,17 @@ const initSocketService = (io) => {
     });
 
     //chat
-    socket.on("chat:send", ({ message }) => {
+    socket.on("chat:send", ({ ciphertext, iv }) => {
       if (!socket.currentRoomId || !socket.participantId) {
         return;
       }
 
-      const trimmedMessage = String(message || "").trim();
-
-      if (!trimmedMessage) {
+      if (
+        typeof ciphertext !== "string" ||
+        !ciphertext ||
+        typeof iv !== "string" ||
+        !iv
+      ) {
         return;
       }
 
@@ -116,13 +119,63 @@ const initSocketService = (io) => {
 
         displayName: socket.displayName,
 
-        message: trimmedMessage,
+        ciphertext,
+        iv,
 
         timestamp: new Date().toISOString(),
       };
 
       io.to(socket.currentRoomId).emit("chat:message", chatMessage);
     });
+
+    socket.on("chat:key:request", () => {
+      if (!socket.currentRoomId || !socket.participantId) {
+        return;
+      }
+
+      socket.to(socket.currentRoomId).emit("chat:key:request", {
+        participantId: socket.participantId,
+
+        displayName: socket.displayName,
+      });
+    });
+
+    socket.on(
+      "chat:key:share",
+      ({ recipientParticipantId, wrappedKey, iv }) => {
+        if (!socket.currentRoomId || !socket.participantId) {
+          return;
+        }
+
+        if (!recipientParticipantId || !wrappedKey || !iv) {
+          return;
+        }
+
+        const participants = roomParticipants.get(socket.currentRoomId);
+
+        if (!participants) {
+          return;
+        }
+
+        const recipient = participants.get(recipientParticipantId);
+
+        if (!recipient) {
+          return;
+        }
+
+        for (const socketId of recipient.socketIds) {
+          io.to(socketId).emit("chat:key:share", {
+            senderParticipantId: socket.participantId,
+
+            recipientParticipantId,
+
+            wrappedKey,
+
+            iv,
+          });
+        }
+      },
+    );
 
     //public key sharing
     socket.on("key:publish", ({ publicKey }) => {
