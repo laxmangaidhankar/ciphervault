@@ -5,10 +5,12 @@ const logger = require("./src/utils/logger");
 
 const app = require("./src/app");
 const env = require("./src/config/env");
-
+const redis = require("./src/config/redis");
+const { connectRedis } = require("./src/config/redis");
 const { connectDB } = require("./src/config/db");
 const { startCleanupService } = require("./src/services/cleanupService");
 const { initSocketService } = require("./src/services/socketService");
+const { socketAuth } = require("./src/middleware/socketAuth");
 
 const server = http.createServer(app);
 
@@ -19,6 +21,8 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
+io.use(socketAuth);
 
 // Make Socket.io available to controllers
 app.set("io", io);
@@ -35,6 +39,7 @@ app.get("/api/health", (req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
+    await connectRedis();
 
     initSocketService(io);
 
