@@ -29,17 +29,17 @@ async function createRoom(req, res) {
       });
     }
 
-    if (trimmedRoomName.length < 3) {
+    if (trimmedRoomName.length < 3 ) {
       return res.status(400).json({
         success: false,
         error: "Room name must be at least 3 characters.",
       });
     }
 
-    if (trimmedRoomName.length > 60) {
+    if (trimmedRoomName.length > 40  || trimmedDisplayName.length>40) {
       return res.status(400).json({
         success: false,
-        error: "Room name must not exceed 60 characters.",
+        error: "Room name or Display name must not exceed 40 characters.",
       });
     }
     const parsedDuration = Number(durationMinutes);
