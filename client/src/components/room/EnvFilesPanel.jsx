@@ -57,37 +57,28 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
       }
 
       if (!roomKeyReady) {
-        console.log("[ENV] Waiting for Room Key...");
         return;
       }
 
       try {
-        console.log("[ENV] Loading started");
 
         setIsLoading(true);
         setError("");
 
-        console.log("[ENV] Getting room key...");
         const keyStart = performance.now();
 
         const roomKey =
           await requireRoomEncryptionKey(roomId);
 
-        console.log(
-          `[ENV] Room key ready: ${(performance.now() - keyStart).toFixed(0)}ms`
-        );
 
-        console.log("[ENV] Fetching encrypted ENV...");
+
         const fetchStart = performance.now();
 
         const response =
           await fetchEncryptedEnv(roomId);
 
-        console.log(
-          `[ENV] API completed: ${(performance.now() - fetchStart).toFixed(0)}ms`
-        );
 
-        console.log("[ENV] Decrypting...");
+
         const decryptStart = performance.now();
 
         const decryptedJson =
@@ -96,31 +87,22 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
             roomKey
           );
 
-        console.log(
-          `[ENV] Decryption completed: ${(performance.now() - decryptStart).toFixed(0)}ms`
-        );
 
         const decryptedVariables =
           JSON.parse(decryptedJson);
 
         setVariables(decryptedVariables);
 
-        console.log(
-          `[ENV] TOTAL: ${(performance.now() - start).toFixed(0)}ms`
-        );
+
 
       } catch (error) {
 
         if (error.status === 404) {
-          console.log("[ENV] No ENV data found yet.");
           setVariables([]);
           return;
         }
 
-        console.error(
-          "[ENV] Failed to load ENV:",
-          error
-        );
+
 
         setError(
           error.message ||
@@ -175,7 +157,6 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
           roomKey
         );
 
-      console.log("[ENV] Encrypting updated ENV");
 
       // 5. Send ONLY encrypted data to backend
       await saveEncryptedEnv(
@@ -183,7 +164,6 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
         encryptedEnv
       );
 
-      console.log("[ENV] Encrypted ENV saved");
 
       // 6. Update UI only after server save succeeds
       setVariables(updatedVariables);
@@ -194,10 +174,7 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
       setIsAdding(false);
 
     } catch (error) {
-      console.error(
-        "[ENV] Failed to add variable:",
-        error
-      );
+
 
       setError(
         error.message ||
@@ -219,7 +196,6 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
       setIsSaving(true);
       setError("");
 
-      console.log("[ENV] Deleting variable:", id);
 
       // Get the existing Room AES key
       const roomKey =
@@ -230,10 +206,7 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
         (variable) => variable.id !== id
       );
 
-      console.log(
-        "[ENV] Variables after deletion:",
-        updatedVariables
-      );
+
 
       // Encrypt the updated complete ENV list
       const encryptedEnv =
@@ -242,9 +215,7 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
           roomKey
         );
 
-      console.log(
-        "[ENV] Saving encrypted ENV after deletion"
-      );
+
 
       // Replace the encrypted ENV stored in Redis
       await saveEncryptedEnv(
@@ -252,9 +223,6 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
         encryptedEnv
       );
 
-      console.log(
-        "[ENV] ENV deletion persisted successfully"
-      );
 
       // Update current user's UI immediately
       setVariables(updatedVariables);
@@ -267,10 +235,7 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
       });
 
     } catch (error) {
-      console.error(
-        "[ENV] Failed to delete variable:",
-        error
-      );
+
 
       setError(
         error.message ||
@@ -284,6 +249,47 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
   const filteredVariables = variables.filter((variable) =>
     variable.key.toLowerCase().includes(searchValue.toLowerCase())
   );
+
+  const downloadEnvFile = () => {
+    try {
+      if (!variables.length) {
+        setError("No environment variables available to download.");
+        return;
+      }
+
+      const envContent = variables
+        .map(({ key, value }) => {
+          return `${key}=${value}`;
+        })
+        .join("\n");
+
+      const blob = new Blob(
+        [envContent],
+        {
+          type: "text/plain;charset=utf-8",
+        }
+      );
+
+      const url = URL.createObjectURL(blob);
+
+      const anchor = document.createElement("a");
+
+      anchor.href = url;
+      anchor.download = ".env";
+
+      document.body.appendChild(anchor);
+      anchor.click();
+
+      document.body.removeChild(anchor);
+
+      URL.revokeObjectURL(url);
+
+    } catch (error) {
+      
+
+      setError("Failed to download .env file.");
+    }
+  };
 
   return (
 
@@ -311,6 +317,9 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
 
 
             <button
+              onClick={downloadEnvFile}
+              disabled={isLoading || isSaving || variables.length === 0}
+              title=".env"
               type="button"
               className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-button border border-surface-border text-xs text-text-secondary hover:text-text-primary hover:border-brand-mint transition-colors"
             >
@@ -416,6 +425,9 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
 
             )}
 
+
+
+
             {/* Existing variables */}
             {filteredVariables.map((variable) => (
 
@@ -444,14 +456,7 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
                     {/* Row actions */}
                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
 
-                      <button
-                        type="button"
-                        className="p-2 text-text-muted hover:text-brand-mint transition-colors"
-                        title="Edit variable"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-
+                     
                       <button
                         onClick={() => {
                           const confirmed = window.confirm(
