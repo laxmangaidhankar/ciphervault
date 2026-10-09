@@ -50,20 +50,5 @@ export const roomApi = {
     return response.data;
   },
 
-  uploadFile: async (roomId, filePayload) => {
-    const response = await api.post(`/v1/rooms/files/${roomId}`, filePayload);
-    return response.data;
-  },
 
-  getFiles: async (roomId) => {
-    const response = await api.get(`/v1/rooms/files/${roomId}`);
-    return response.data;
-  },
-
-  deleteFile: async (roomId, fileId) => {
-    const response = await api.delete(
-      `/v1/rooms/files/${roomId}/${fileId}`
-    );
-    return response.data;
-  }
 };

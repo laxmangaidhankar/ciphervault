@@ -286,12 +286,14 @@ async function joinRoom(req, res) {
       expiresAt: room.expiresAt,
     });
 
-    res.cookie("session", sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      expires: room.expiresAt,
-    });
+res.cookie("session", sessionToken, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  expires: room.expiresAt,
+  path: "/",
+});
+
     return res.status(200).json({
       success: true,
 

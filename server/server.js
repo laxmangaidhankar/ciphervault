@@ -31,7 +31,7 @@ app.set("io", io);
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "ok",
-    service: "CipherDrop E2EE Engine",
+    service: "SafeHouse E2EE Engine",
     timestamp: new Date().toISOString(),
   });
 });
@@ -47,7 +47,7 @@ const startServer = async () => {
     startCleanupService(io, 30000);
 
     server.listen(env.PORT, () => {
-      logger.info(`CipherDrop Backend Server running on port ${env.PORT}`);
+      logger.info(`SafeHouse Backend Server running on port ${env.PORT}`);
     });
   } catch (error) {
     logger.error("Failed to start server:", error);
