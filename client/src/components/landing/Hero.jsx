@@ -141,7 +141,7 @@ export const Hero = () => {
 
                 <div className="flex items-center justify-between bg-canvas-black border border-surface-border rounded-xl px-5 py-4">
                   <span className="text-text-primary text-2xl md:text-3xl font-mono tracking-[0.25em]">
-                    X7K92
+                    X7K92B
                   </span>
 
                   <span className="text-mono text-xs text-brand-mint">

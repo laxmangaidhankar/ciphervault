@@ -6,38 +6,36 @@ import {
   Share2,
   ShieldCheck,
 } from 'lucide-react';
-
 const steps = [
   {
     id: '01',
     icon: Plus,
     title: 'Create a Room',
     desc:
-      'Start a temporary secure room without creating an account. Set the room lifetime and configure how it should be accessed.',
+      'Create a temporary room without an account. Enter a room name and choose its lifetime, and SafeHouse generates a unique room code.',
   },
   {
     id: '02',
     icon: KeyRound,
-    title: 'Set an Access Code',
+    title: 'Get Your Access Key',
     desc:
-      'Choose an access code that protects the room. Only people who have the room code and access code can enter.',
+      'SafeHouse automatically generates a secure access key for your room. Keep it private and share it only with trusted participants who need access.',
   },
   {
     id: '03',
     icon: Share2,
     title: 'Share & Join',
     desc:
-      'Share the room code and access code with your team. Participants enter their display name and join the room instantly.',
+      'Share the room code and generated access key with your team. Participants enter both credentials and a display name to join the room.',
   },
   {
     id: '04',
     icon: ShieldCheck,
-    title: 'Share Securely',
+    title: 'Collaborate Securely',
     desc:
-      'Collaborate inside the temporary room while your data remains protected. When the room expires, its contents are automatically removed.',
+      'Exchange encrypted environment variables and end-to-end encrypted chat messages in real time. Your secrets are encrypted in the browser, and room data is temporary.',
   },
 ];
-
 export const HowItWorks = () => {
   return (
     <section

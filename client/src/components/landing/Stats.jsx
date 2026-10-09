@@ -2,9 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const stats = [
-  { value: '0', label: 'Accounts Required' },
-  { value: 'E2E', label: 'Client-Side Encryption' },
-  { value: '1', label: 'Shareable Room' },
+  { value: 'AES-GCM', label: 'encryption Implementation' },
+  { value: 'E2EE', label: 'Client-Side Encryption' },
+  { value: '24h', label: 'Room LifeTime' },
   { value: 'TTL', label: 'Automatic Expiry' },
 ];
 

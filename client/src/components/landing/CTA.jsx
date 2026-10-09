@@ -40,9 +40,10 @@ export const CTA = () => {
 
             {/* Description */}
             <p className="text-body text-text-secondary text-lg mb-10 max-w-2xl mx-auto">
-              Create a temporary room, set an access code, and share it with
-              your team. Join when you need it and let the room expire when
-              you're done.
+              Create a temporary room, let SafeHouse generate a secure access key,
+              and share the room credentials with your team. Exchange encrypted
+              environment variables and chat securely, with room data expiring
+              after its configured lifetime.
             </p>
 
             {/* Actions */}
