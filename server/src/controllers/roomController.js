@@ -3,6 +3,8 @@ const Room = require("../models/Room");
 const logger = require("../utils/logger");
 const { generateRoomId } = require("../utils/roomId");
 
+const { sessionCookieOptions } = require("../utils/sessionCookie");
+
 const { generateRoomToken } = require("../utils/roomToken");
 
 const {
@@ -109,11 +111,9 @@ async function createRoom(req, res) {
     });
 
     res.cookie("session", sessionToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      expires: room.expiresAt,
-    });
+  ...sessionCookieOptions,
+  expires: room.expiresAt,
+});
     logger.info(
       {
         event: "room_created",
@@ -287,11 +287,8 @@ async function joinRoom(req, res) {
     });
 
 res.cookie("session", sessionToken, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  ...sessionCookieOptions,
   expires: room.expiresAt,
-  path: "/",
 });
 
     return res.status(200).json({
