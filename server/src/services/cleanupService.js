@@ -1,5 +1,5 @@
 const Room = require('../models/Room');
-const SharedFile = require('../models/SharedFile');
+
 
 let cleanupInterval = null;
 
@@ -25,9 +25,6 @@ const startCleanupService = (io, intervalMs = 30000) => {
           // Mark room status as expired
           room.status = 'expired';
           await room.save();
-
-          // Delete all encrypted file records for this room
-          const deletedFiles = await SharedFile.deleteMany({ roomId: room.roomId });
 
 
           // Emit live socket event to notify connected clients
