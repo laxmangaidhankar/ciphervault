@@ -19,7 +19,7 @@ export const Header = ({ onMenuToggle, room }) => {
         )}
 
         <div className="flex items-center gap-2 md:gap-3">
-          <img src="\src\public\nav.png" alt="Logo" className="h-10 w-10 object-contain" />
+          <img src="/nav.png" alt="Logo" className="h-10 w-10 object-contain" />
           <h1 className="text-heading-lg text-text-primary tracking-tight text-lg md:text-2xl pt-1">SafeHouse</h1>
         </div>
       </div>
