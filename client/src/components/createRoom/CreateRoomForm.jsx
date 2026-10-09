@@ -6,9 +6,10 @@ import { motion } from 'framer-motion';
 import { roomApi } from '../../services/roomApi';
 import {
   createRoomEncryptionKey,
-  getRoomEncryptionKey,
   getOrCreateIdentity,
 } from '../../crypto/roomKeyManager';
+
+import { createChatEncryptionKey } from '../../crypto/chatKeyManager';
 
 export const CreateRoomForm = () => {
   const [roomName, setRoomName] = useState('');
@@ -66,12 +67,9 @@ export const CreateRoomForm = () => {
       } = response.room;
 
 
-
       await createRoomEncryptionKey(roomId);
 
-      const storedRoomKey =
-        await getRoomEncryptionKey(roomId);
-
+      await createChatEncryptionKey(roomId);
 
       await getOrCreateIdentity();
 

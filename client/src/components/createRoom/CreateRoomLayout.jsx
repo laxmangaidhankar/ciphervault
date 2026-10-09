@@ -37,8 +37,7 @@ export const RoomLayout = ({ children }) => {
           </h2>
 
           <p className="text-body text-text-secondary text-lg mb-8">
-            Create secure rooms to manage and share environment variables,
-            credentials, and sensitive configuration with your team.
+            Create temporary, encrypted rooms to share environment variables, credentials, and sensitive configuration with your team — without exposing plaintext secrets to the server.
           </p>
 
           <div className="flex flex-col gap-4">
@@ -46,21 +45,21 @@ export const RoomLayout = ({ children }) => {
               <div className="w-6 h-6 rounded-full bg-brand-mint/20 border border-brand-mint/50 flex items-center justify-center shrink-0">
                 <KeyRound className="w-3.5 h-3.5 text-brand-mint" />
               </div>
-              <span>Role-based access keys</span>
+              <span>System-generated access keys</span>
             </div>
 
             <div className="flex items-center gap-3 text-body text-text-primary">
               <div className="w-6 h-6 rounded-full bg-brand-mint/20 border border-brand-mint/50 flex items-center justify-center shrink-0">
                 <Shield className="w-3.5 h-3.5 text-brand-mint" />
               </div>
-              <span>Encrypted secret storage</span>
+              <span>End-to-end encrypted sharing</span>
             </div>
 
             <div className="flex items-center gap-3 text-body text-text-primary">
               <div className="w-6 h-6 rounded-full bg-brand-mint/20 border border-brand-mint/50 flex items-center justify-center shrink-0">
                 <Clock className="w-3.5 h-3.5 text-brand-mint" />
               </div>
-              <span>Temporary, controlled-access rooms</span>
+              <span>Temporary rooms with automatic expiry</span>
             </div>
           </div>
         </div>

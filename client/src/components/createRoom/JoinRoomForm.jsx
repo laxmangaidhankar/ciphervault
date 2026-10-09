@@ -173,6 +173,7 @@ export const JoinRoomForm = () => {
               <input
                 type="text"
                 value={roomKey}
+                maxLength={6}
                 onChange={(e) => setRoomKey(e.target.value)}
                 autoComplete="off"
                 className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors font-mono"
@@ -234,6 +235,7 @@ export const JoinRoomForm = () => {
               <input
                 type="password"
                 value={accessKey}
+                maxLength={8}
                 onChange={(e) => setAccessKey(e.target.value)}
                 autoComplete="off"
                 className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors font-mono"
