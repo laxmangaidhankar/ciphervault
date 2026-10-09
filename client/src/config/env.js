@@ -1,7 +1,7 @@
 const config = {
-  apiBaseUrl: import.meta.env.API_BASE_URL,
-  socketUrl: import.meta.env.SOCKET_URL,
-  backend: import.meta.env.BACKEND_URL,
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
+  socketUrl: import.meta.env.VITE_SOCKET_URL,
+  backend: import.meta.env.VITE_BACKEND_URL,
 };
 
 export default config;
