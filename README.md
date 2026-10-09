@@ -1,115 +1,166 @@
-# 🛡️ CipherVault
+# 🛡️ SafeHouse
 
-> **Zero-Knowledge End-to-End Encrypted (E2EE) Temporary Room & Secret Sharing Platform**
+> **Zero-Knowledge, Client-Side Encrypted Temporary Room & Secret Sharing Platform**
 
-CipherVault is a secure, ephemeral file and secret sharing web application built to eliminate plain-text credential leaks across persistent communication channels (Slack, Discord, Email, WhatsApp). By utilizing client-side **AES-256-GCM encryption** via the Web Crypto API, secret decryption keys remain isolated within the browser hash fragment (`#KEY`) and are never sent to the server.
+SafeHouse is a security-focused web application for sharing sensitive configuration files, `.env` files, text snippets, code, and binary files through temporary rooms. It is designed to reduce the risk of exposing credentials through persistent communication channels such as email, messaging applications, and team collaboration tools.
 
----
+SafeHouse uses **AES-256-GCM encryption through the browser's Web Crypto API** to encrypt content before it reaches the backend. Encryption keys are shared through URL fragments, keeping them out of ordinary HTTP requests.
 
 ## 🌟 Key Features
 
-- 🔐 **Zero-Knowledge End-to-End Encryption (E2EE)**
-  - All text snippets, `.env` files, code, and binary uploads are encrypted client-side in the browser using 256-bit AES-GCM before transmission.
-  - The server only stores raw ciphertext blobs and random IVs.
-- 🔑 **URL Hash Fragment Key Delivery**
-  - Encryption keys are passed through the URL fragment (`https://domain.com/join/ROOM_ID#SECRET_KEY`).
-  - RFC 3986 specifies that browser hash fragments are never included in HTTP request headers, guaranteeing the server operators cannot decrypt your secrets.
-- ⏳ **Self-Destructing Rooms & Automatic Purging**
-  - Rooms automatically expire after a configurable duration (5 min, 10 min, 30 min, 60 min).
-  - MongoDB TTL (Time-To-Live) indexes combined with a backend cleanup service ensure all ciphertext and metadata are permanently erased upon expiry.
-- 💥 **Instant Manual Room Destruction**
-  - Room creators receive a cryptographically secure `destroyToken` (hashed with SHA-256 on the server) enabling instant room teardown and file purging.
-- ⚡ **Real-Time Live Synchronization**
-  - Powered by Socket.io for instant updates: live participant counters, real-time file upload feed, and instant expiration/destruction notifications across all connected peers.
-- 🛡️ **Anti-Abuse & Rate Limiting**
-  - Integrated IP-based rate limiting on room creation, joining, and file uploads to prevent brute-force attacks and storage exhaustion.
+- 🔐 **Client-Side End-to-End Encryption**
+  - Encrypt text snippets, environment files, code, and supported binary uploads in the browser.
+  - Use AES-256-GCM with a unique, randomly generated 96-bit initialization vector (IV) for each encryption operation.
+  - Store encrypted payloads and associated IVs on the server instead of plaintext content.
 
----
+- 🔑 **URL Fragment-Based Key Sharing**
+  - Share room links containing the decryption key in the URL fragment, for example: `https://your-domain.com/join/ROOM_ID#SECRET_KEY`.
+  - Browsers do not include URL fragments in HTTP requests.
+  - Decryption keys remain client-side during normal application operation, provided the frontend does not explicitly transmit or log them.
 
-## 🏗️ Security Architecture & Threat Model
+- ⏳ **Temporary Rooms and Expiration**
+  - Create rooms with configurable expiration durations: 5, 10, 30, or 60 minutes.
+  - Use MongoDB TTL indexes and backend cleanup mechanisms to support automatic data expiration.
+  - Notify connected participants when a room expires or is destroyed.
 
-### Cryptographic Workflow
+- 💥 **Manual Room Destruction**
+  - Support immediate room destruction through a cryptographically random destruction token.
+  - Store a hash of the destruction token rather than the original token.
+  - Remove associated room data through the application's cleanup workflow.
 
+- ⚡ **Real-Time Room Synchronization**
+  - Use Socket.IO for participant counts, file activity, and room lifecycle notifications.
+  - Keep connected clients informed about relevant room events.
+
+- 🛡️ **Abuse Prevention**
+  - Apply IP-based rate limits to room creation, joining, and file uploads.
+  - Validate room identifiers, upload sizes, expiration values, and incoming requests.
+  - Use structured server-side logging while avoiding sensitive content and credentials.
+
+## 🏗️ Security Architecture
+
+### Encryption Workflow
+
+```text
+┌────────────────────────┐
+│     Sender Browser     │
+│                        │
+│ Generate AES-256 key   │
+│ Encrypt content        │
+│ Generate random IV     │
+└────────────┬───────────┘
+             │
+             │ Ciphertext + IV
+             ▼
+┌────────────────────────┐
+│      SafeHouse API     │
+│                        │
+│ Validate request       │
+│ Store encrypted data   │
+│ Manage room lifecycle  │
+└────────────┬───────────┘
+             │
+             │ Ciphertext + IV
+             ▼
+┌────────────────────────┐
+│    Receiver Browser    │
+│                        │
+│ Obtain key from URL    │
+│ fragment               │
+│ Decrypt locally        │
+└────────────────────────┘
 ```
-[ Sender Browser ]                               [ Backend Server ]                            [ Receiver Browser ]
-       |                                                 |                                              |
- 1. Generate AES-256-GCM Key                             |                                              |
- 2. Encrypt payload with random 96-bit IV                |                                              |
- 3. Send Ciphertext + IV ------------------------------> | Store Ciphertext & IV in Mongo               |
- 4. Share Room Link + #KEY ---------------------------------------------------------------------------> 5. Extract #KEY from URL
-                                                         | <----------------- Fetch Ciphertext + IV ---- 6. Request Ciphertext
-                                                         | ------------------ Return Ciphertext + IV --> 7. Decrypt locally via Web Crypto API
-```
 
-### Threat Model & Guarantees
+### Security and Threat Model
 
-| Vulnerability / Threat | Protection Level | Technical Mechanism |
-| :--- | :--- | :--- |
-| **Server-Side Data Breach** | 🛡️ Protected | Backend only stores ciphertext blobs. Compromised DB contains zero plaintext secrets. |
-| **Server Operator Inspection** | 🛡️ Protected | Encryption happens in browser before HTTP dispatch. URL `#key` is ignored by HTTP requests. |
-| **Persistent Chat Archives** | 🛡️ Protected | Shared room URLs expire and self-destruct, preventing permanent leaks in chat histories. |
-| **Malicious Recipient** | ⚠️ Not Protected | If a recipient copies decrypted content locally, cryptographic controls end at the endpoint. |
-| **Client Device Malware** | ⚠️ Not Protected | Compromised client runtime (keyloggers, malicious browser extensions) bypasses E2EE. |
+| Threat | Intended Protection | Mechanism / Limitation |
+|---|---|---|
+| Database exposure | Protect stored content | Client-side encryption keeps plaintext out of the database when implemented correctly. |
+| Passive network interception | Protect content in transit | HTTPS protects communications; encrypted payloads provide an additional layer. |
+| Server operator accessing stored data | Limit access to plaintext | The server should never receive the decryption key or plaintext payload. |
+| Persistent credential sharing | Reduce long-term exposure | Temporary rooms, expiration, and manual destruction reduce the sharing window. |
+| Malicious recipient | Not fully protected | Recipients can copy, screenshot, or redistribute decrypted content. |
+| Compromised client device | Not protected | Malware, malicious extensions, or compromised JavaScript can expose plaintext or keys. |
+| Malicious frontend deployment | Not inherently protected | A compromised frontend could capture keys or plaintext before encryption or after decryption. |
+| Metadata exposure | Partially protected | Room IDs, timestamps, IP addresses, file sizes, and access patterns may still be observable, depending on implementation. |
 
----
+**Important:** SafeHouse's zero-knowledge properties depend on the actual implementation, key handling, frontend integrity, and server behavior. Encryption alone does not establish that the entire system has been independently audited.
 
-## 🛠️ Tech Stack
+### Room Expiration and Data Deletion
 
-### **Frontend (`client/`)**
-- **Framework:** React 18 with Vite
-- **Styling:** Tailwind CSS & Lucide Icons
-- **Cryptography:** Web Crypto API (`window.crypto.subtle`) — native, hardware-accelerated AES-256-GCM key generation, encryption & decryption
-- **Real-Time:** `socket.io-client`
-- **Routing & HTTP:** `react-router-dom` v6, `axios`
+MongoDB TTL indexes perform asynchronous deletion; they do not guarantee deletion at the exact expiration timestamp. The application should also reject access to expired rooms at the API level.
 
-### **Backend (`server/`)**
-- **Runtime:** Node.js with Express 5
-- **Database:** MongoDB with Mongoose ODM (TTL Indexes)
-- **Real-Time WebSockets:** `socket.io`
-- **Security & Logging:** `express-rate-limit`, `cookie-parser`, `pino` logger
-- **Dev Tools:** `nodemon`
+Likewise, deleting database records does not guarantee the immediate erasure of every copy in backups, logs, storage layers, or infrastructure snapshots. Avoid representing expiration as guaranteed permanent erasure unless all relevant storage and retention mechanisms have been verified.
 
----
+## 🛠️ Technology Stack
+
+### Frontend — `client/`
+
+- **Framework:** React 18, Vite
+- **Styling:** Tailwind CSS
+- **Icons:** Lucide
+- **Cryptography:** Browser Web Crypto API
+- **Encryption:** AES-256-GCM
+- **Networking:** Axios
+- **Routing:** React Router
+- **Real-time communication:** Socket.IO Client
+
+### Backend — `server/`
+
+- **Runtime:** Node.js
+- **API:** Express 5
+- **Database:** MongoDB with Mongoose
+- **Real-time communication:** Socket.IO
+- **Security:** Express Rate Limit, request validation, secure token handling
+- **Logging:** Pino
+- **Development:** Nodemon
 
 ## 📁 Project Structure
 
 ```text
-envsafe/
-├── client/                     # React Frontend Application
+safehouse/
+├── client/
 │   ├── src/
-│   │   ├── components/         # UI Components (ExpiryTimer, FileCard, SecurityNotice, ThreatModelModal, Navbar)
-│   │   ├── crypto/             # Client-Side Cryptographic Utilities
-│   │   │   ├── encryption.js   # AES-256-GCM Encryption
-│   │   │   ├── decryption.js   # AES-256-GCM Decryption
-│   │   │   └── keyManager.js   # Key Generation, Base64URL Conversion & Import/Export
-│   │   ├── pages/              # App Pages (Home, CreateRoom, JoinRoom, Room)
-│   │   ├── services/           # Axios API Client & Socket.io Event Handlers
-│   │   ├── App.jsx             # Main Application Routes & Layout
-│   │   └── main.jsx            # React Root Entry Point
+│   │   ├── components/
+│   │   ├── crypto/
+│   │   │   ├── encryption.js
+│   │   │   ├── decryption.js
+│   │   │   └── keyManager.js
+│   │   ├── pages/
+│   │   │   ├── Home.jsx
+│   │   │   ├── CreateRoom.jsx
+│   │   │   ├── JoinRoom.jsx
+│   │   │   └── Room.jsx
+│   │   ├── services/
+│   │   ├── App.jsx
+│   │   └── main.jsx
 │   ├── package.json
-│   ├── tailwind.config.js
 │   └── vite.config.js
 │
-└── server/                     # Express & Socket.io Backend API
-    ├── src/
-    │   ├── config/             # Environment & Database Configuration
-    │   ├── controllers/        # Request Handlers (roomController, fileController)
-    │   ├── middleware/         # Authorization, Rate-Limiting & Room Validation
-    │   ├── models/             # Mongoose Schemas (Room, SharedFile with TTL Indexes)
-    │   ├── routes/             # REST API Endpoints (/api/v1/rooms, /api/v1/rooms/files)
-    │   ├── services/           # Cleanup Cron Service & Socket.io Room Manager
-    │   └── utils/              # Pino Logger Utility
-    ├── package.json
-    └── server.js               # HTTP & WebSocket Server Entry Point
+├── server/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   └── utils/
+│   ├── package.json
+│   └── server.js
+│
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
 
----
+*The structure above describes the intended organization; adjust file names to match the actual repository.*
 
 ## ⚙️ Environment Variables
 
-### **Backend (`server/.env`)**
+Configure environment variables separately for local development and production. Never commit real secrets or database credentials to GitHub.
 
-Create a `.env` file inside the `server/` directory:
+### Backend — `server/.env`
 
 ```env
 PORT=3000
@@ -117,103 +168,172 @@ MONGO_URI=mongodb://127.0.0.1:27017/envsafe
 CLIENT_URL=http://localhost:5173
 NODE_ENV=development
 LOG_LEVEL=info
+JWT_SECRET=replace_with_a_secure_random_secret
 ```
 
-### **Frontend (`client/.env`)**
+These are example names. Keep only variables that your backend actually reads. If `server/src/config/env.js` requires additional variables, configure those as well.
 
-Create a `.env` file inside the `client/` directory (optional for custom deployment):
+Generate a secure random JWT secret using Node.js:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+For production, configure the resulting value in your backend hosting provider's environment settings instead of committing it to a file.
+
+### Frontend — `client/.env`
 
 ```env
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
----
+For production, set `VITE_API_BASE_URL` to your deployed backend's base URL, using the URL format expected by your Axios client.
+
+For example:
+
+```env
+VITE_API_BASE_URL=https://your-backend.onrender.com
+```
+
+If the frontend uses a separate Socket.IO URL variable, configure it only if that variable exists in your application code.
+
+**Never place private credentials, database connection strings, JWT secrets, or server-only encryption keys in `VITE_*` variables.** Vite exposes these values to client-side code.
+
+### Production Configuration
+
+Before deploying:
+
+- Configure the production database URI and backend secrets.
+- Set the frontend's production origin in the backend CORS configuration.
+- Use HTTPS for the frontend and API.
+- Configure upload size limits and appropriate rate limits.
+- Ensure expired rooms are rejected even before TTL cleanup runs.
+- Verify that URL fragments, keys, plaintext payloads, and sensitive file contents are never written to logs.
+- Rebuild the frontend after changing Vite environment variables.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Node.js** v18.x or higher
-- **npm** v9.x or higher
-- **MongoDB** running locally or a MongoDB Atlas URI
+- Node.js 18 or later, compatible with your installed dependencies
+- npm
+- A local MongoDB instance or MongoDB Atlas database
 
----
-
-### Step 1: Setup Backend Server
+### 1. Clone the Repository
 
 ```bash
-# Navigate to server directory
+git clone https://github.com/laxmangaidhankar/ciphervault.git
+cd ciphervault
+```
+
+### 2. Start the Backend
+
+```bash
 cd server
-
-# Install dependencies
 npm install
-
-# Create environment configuration
-# Copy or create server/.env with your MONGO_URI and PORT
-
-# Start development server with hot-reload
-npm run dev
 ```
 
-The backend server will launch on `http://localhost:3000`.
-
----
-
-### Step 2: Setup Frontend Client
+Create `server/.env` with the appropriate local configuration, then run:
 
 ```bash
-# Navigate to client directory (in a new terminal)
-cd client
-
-# Install dependencies
-npm install
-
-# Start Vite dev server
 npm run dev
 ```
 
-The client application will launch on `http://localhost:5173`.
+The backend should be available at `http://localhost:3000`, assuming the configured port is 3000.
 
----
+### 3. Start the Frontend
+
+Open another terminal:
+
+```bash
+cd client
+npm install
+```
+
+Create `client/.env` with the backend API URL, then run:
+
+```bash
+npm run dev
+```
+
+Open the local URL printed by Vite, typically `http://localhost:5173`.
+
+### 4. Build the Frontend for Production
+
+From the `client/` directory:
+
+```bash
+npm run build
+```
+
+Vite generates the production assets in `client/dist/` by default.
+
+Preview the production build locally with:
+
+```bash
+npm run preview
+```
+
+The preview server is intended for local validation, not as a production hosting server.
+
+## 🌐 Deployment
+
+A simple deployment configuration for a portfolio project is:
+
+| Component | Suggested service | Configuration |
+|---|---|---|
+| React frontend | Vercel | Root directory `client`, build command `npm run build`, output directory `dist` |
+| Express and Socket.IO backend | Render | Root directory `server`, start command as defined in `server/package.json` |
+| Database | MongoDB Atlas | Configure `MONGO_URI` in the backend environment |
+
+Actual root-directory and build settings depend on the repository layout. If the frontend and backend are deployed as separate projects, configure each service independently.
+
+For production deployments, verify WebSocket connectivity, CORS, room expiration, upload limits, and browser encryption/decryption on the live domains.
 
 ## 📡 API Reference
 
-### REST Endpoints (`/api/v1`)
+The following endpoints represent the documented API surface. Confirm the exact paths and behavior against the implementation.
 
-| Method | Endpoint | Description | Rate Limited |
-| :--- | :--- | :--- | :---: |
-| `POST` | `/api/v1/rooms` | Create a new room with expiry duration and participant limits | Yes |
-| `GET` | `/api/v1/rooms/:roomId` | Fetch room status and metadata | Yes |
-| `DELETE` | `/api/v1/rooms/:roomId` | Manually self-destruct a room and purge files | No |
-| `POST` | `/api/v1/rooms/files/:roomId` | Upload encrypted ciphertext blob to a room | Yes |
-| `GET` | `/api/v1/rooms/files/:roomId` | Fetch all encrypted file payloads for a room | No |
-| `DELETE` | `/api/v1/rooms/files/:roomId/:fileId` | Delete a specific encrypted file from a room | No |
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/rooms` | Create a temporary room |
+| `GET` | `/api/v1/rooms/:roomId` | Retrieve room status and metadata |
 
----
+Additional room-file routes may be available depending on the implemented controllers and route registrations.
 
-### Real-Time WebSockets (`Socket.io`)
+### Socket.IO Events
 
-| Event Name | Direction | Payload | Description |
-| :--- | :--- | :--- | :--- |
-| `join-room` | Client ➔ Server | `{ roomId }` | Connect socket to room channel |
-| `leave-room` | Client ➔ Server | `{ roomId }` | Disconnect socket from room channel |
-| `room:joined` | Server ➔ Client | `{ participantCount }` | Broadcast updated participant count |
-| `participant:left` | Server ➔ Client | `{ participantCount }` | Broadcast when a participant leaves |
-| `file:added` | Server ➔ Client | `{ file }` | Real-time push of newly uploaded ciphertext |
-| `file:deleted` | Server ➔ Client | `{ fileId }` | Real-time push when a file is deleted |
-| `room:expired` | Server ➔ Client | `{ roomId, message }` | Broadcast when room reaches TTL expiration |
-| `room:destroyed` | Server ➔ Client | `{ roomId, message }` | Broadcast when creator destroys room |
+| Event | Direction | Purpose |
+|---|---|---|
+| `join-room` | Client → Server | Request to join a room |
+| `leave-room` | Client → Server | Leave a room |
+| `room:joined` | Server → Client | Receive room-join confirmation and participant information |
 
----
+Socket events should validate room existence, expiry, authorization, and payloads server-side. Do not trust client-supplied room IDs or participant counts without validation.
 
-## 🔒 Security Best Practices for Users
+## 🔒 Security Best Practices
 
-1. **Share Links Carefully:** Ensure the full URL (including `#KEY`) is shared over trusted channels.
-2. **Verify Expiry Timers:** Set room expiry to the minimum duration necessary for the handover.
-3. **Manual Teardown:** Click **"Destroy Room Now"** as soon as the intended recipient confirms receiving the credentials.
+1. **Share complete links securely.** Anyone who obtains a valid link containing the key may be able to decrypt the associated content.
+2. **Use short expiration periods.** Choose the shortest duration that meets the sharing requirement.
+3. **Destroy rooms when finished.** Manual destruction reduces the time encrypted content remains available.
+4. **Protect the browser environment.** Avoid untrusted browser extensions and compromised devices when handling sensitive credentials.
+5. **Keep secrets out of logs and repositories.** Never commit `.env` files or expose backend credentials in frontend bundles.
+6. **Validate every server request.** Apply authorization, request validation, upload limits, and rate limiting.
+7. **Test the security assumptions.** Verify that keys and plaintext do not leave the browser, including through analytics, error reporting, and debugging logs.
 
----
+## 🧪 Testing and Verification
+
+Before considering the application production-ready, verify:
+
+- Encryption and decryption round-trip correctly.
+- Modified ciphertext and invalid authentication tags cause decryption to fail.
+- Each encryption operation uses an appropriately unique random IV.
+- The server receives and stores ciphertext rather than plaintext.
+- URL fragments are not sent to the API or recorded in application logs.
+- Expired and destroyed rooms cannot be accessed through REST or Socket.IO.
+- Upload validation, rate limiting, and authorization behave as intended.
+- Production deployment works over HTTPS and supports WebSocket reconnections.
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for details.
+Distributed under the MIT License. See the [`LICENSE`](LICENSE) file for details.
