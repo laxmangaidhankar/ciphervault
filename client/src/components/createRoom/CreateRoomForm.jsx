@@ -132,7 +132,7 @@ export const CreateRoomForm = () => {
             type="text"
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
-            maxLength={60}
+            maxLength={40}
             autoFocus
             className="w-full bg-canvas-black border border-surface-border rounded-lg px-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors"
             placeholder="e.g. Production Backend"
@@ -148,7 +148,7 @@ export const CreateRoomForm = () => {
             type="text"
             value={displayName}
             onChange={(e) => setOwnerName(e.target.value)}
-            maxLength={60}
+            maxLength={40}
 
             className="w-full bg-canvas-black border border-surface-border rounded-lg px-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors"
             placeholder="e.g. Leader - Dravid"

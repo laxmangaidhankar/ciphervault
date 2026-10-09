@@ -75,13 +75,13 @@ export const JoinRoomForm = () => {
       return;
     }
 
-    if (trimmedDisplayName.length < 2) {
-      setError('Display name must be at least 2 characters');
+    if (trimmedDisplayName.length < 1) {
+      setError('Display name must be at least 1 characters');
       return;
     }
 
-    if (trimmedDisplayName.length > 30) {
-      setError('Display name must be 30 characters or less');
+    if (trimmedDisplayName.length > 40) {
+      setError('Display name must be 40 characters or less');
       return;
     }
 
@@ -174,7 +174,8 @@ export const JoinRoomForm = () => {
                 type="text"
                 value={roomKey}
                 maxLength={6}
-                onChange={(e) => setRoomKey(e.target.value)}
+                  onChange={(e) => setRoomKey(e.target.value.toUpperCase())}
+
                 autoComplete="off"
                 className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors font-mono"
                 placeholder="e.g. 482731"
@@ -214,6 +215,8 @@ export const JoinRoomForm = () => {
 
             <input
               type="text"
+              autoutocapitalize="characters"
+
               value={roomKey}
               readOnly
               className="w-full bg-canvas-black/50 border border-surface-border rounded-lg px-4 py-3 text-body text-text-secondary font-mono"
@@ -260,7 +263,7 @@ export const JoinRoomForm = () => {
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                maxLength={30}
+                maxLength={40}
                 autoComplete="nickname"
                 className="w-full bg-canvas-black border border-surface-border rounded-lg pl-11 pr-4 py-3 text-body text-text-primary focus:outline-none focus:border-brand-mint transition-colors"
                 placeholder="e.g. Laxman"
