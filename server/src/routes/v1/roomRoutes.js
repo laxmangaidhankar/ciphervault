@@ -11,7 +11,6 @@ const {
   roomCreateLimiter,
   roomJoinLimiter,
 } = require("../../middleware/rateLimiter");
-const { authenticateRoom } = require("../../middleware/authenticateRoom");
 const { roomMiddleware } = require("../../middleware/roomMiddleware");
 const { authenticateSession } =
   require("../../middleware/authenticateSession");
@@ -34,6 +33,6 @@ roomRouter.get(
   getRoom,
 );
 
-roomRouter.post("/:roomId/join", roomMiddleware, joinRoom);
+roomRouter.post("/:roomId/join", roomMiddleware, roomJoinLimiter,  joinRoom);
 
 module.exports = roomRouter;
