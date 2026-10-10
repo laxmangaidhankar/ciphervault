@@ -17,7 +17,7 @@ const roomSchema = new mongoose.Schema(
       required: true,
       trim: true,
       minlength: 3,
-      maxlength: 60,
+      maxlength: 40,
     },
 
     displayName: {
@@ -25,7 +25,7 @@ const roomSchema = new mongoose.Schema(
       required: true,
       trim: true,
       minlength: 1,
-      maxlength: 60,
+      maxlength: 40,
     },
    
     accessKeyHash: {
