@@ -101,14 +101,8 @@ const getEnv = async (req, res) => {
     // Get encrypted payload from Redis
     const encryptedEnv = await getEncryptedEnv(roomId);
 
-    if (!encryptedEnv) {
-      return res.status(404).json({
-        message: "No ENV data found.",
-      });
-    }
-
     return res.status(200).json({
-      encryptedEnv,
+      encryptedEnv: encryptedEnv ?? null,
     });
   } catch (error) {
     return res.status(500).json({
