@@ -22,19 +22,8 @@ const roomJoinLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Rate limiter for uploading encrypted files: max 30 uploads per 10 minutes per IP
-const fileUploadLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 30,
-  message: {
-    error: 'File upload rate limit exceeded. Please wait before uploading again.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false
-});
 
 module.exports = {
   roomCreateLimiter,
-  roomJoinLimiter,
-  fileUploadLimiter
+  roomJoinLimiter
 };
