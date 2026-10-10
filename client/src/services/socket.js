@@ -6,7 +6,7 @@ let socket = null;
 export const getSocket = () => {
   if (!socket) {
     // In development with Vite proxy, use window.location.origin or explicit port 3000
-  const socketUrl = config.socketUrl;
+  const socketUrl = config.apiBaseUrl;
 
     socket = io(socketUrl, {
       autoConnect: false,

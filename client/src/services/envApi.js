@@ -5,7 +5,7 @@ const getEnvUrl = (roomId) => {
     throw new Error("Room ID is required.");
   }
 
-  return `${config.backend}/api/v1/rooms/${roomId}/env`;
+  return `${config.apiBaseUrl}/api/v1/rooms/${roomId}/env`;
 };
 
 export const fetchEncryptedEnv = async (roomId) => {
@@ -15,6 +15,11 @@ export const fetchEncryptedEnv = async (roomId) => {
     method: "GET",
     credentials: "include",
   });
+
+  if (response.status === 404) {
+    return { encryptedEnv: null };
+  }
+  
 
   const text = await response.text();
 
