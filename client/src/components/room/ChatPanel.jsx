@@ -48,7 +48,7 @@ export const ChatPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-canvas-black overflow-hidden">
+    <div className="flex flex-col h-full bg-canvas-black overflow-hidden ">
 
       {/* Header */}
       <div className="h-16 px-5 border-b border-surface-border flex items-center justify-between bg-surface-elevated">

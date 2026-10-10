@@ -77,7 +77,11 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
         const response =
           await fetchEncryptedEnv(roomId);
 
-
+        if (response.encryptedEnv == null) {
+          setVariables([]);
+          setVisibleVariables({});
+          return;
+        }
 
         const decryptStart = performance.now();
 
@@ -285,7 +289,7 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
       URL.revokeObjectURL(url);
 
     } catch (error) {
-      
+
 
       setError("Failed to download .env file.");
     }
@@ -456,7 +460,7 @@ export const EnvFilesPanel = ({ room, roomKeyReady, envVersion }) => {
                     {/* Row actions */}
                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
 
-                     
+
                       <button
                         onClick={() => {
                           const confirmed = window.confirm(
