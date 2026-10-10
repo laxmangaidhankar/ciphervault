@@ -410,7 +410,7 @@ const requestChatKeyIfNeeded = async (socket) => {
   useEffect(() => {
     if (!room) return;
 
-    const socket = io(config.socketUrl, {
+    const socket = io(config.apiBaseUrl, {
       withCredentials: true,
     });
 
@@ -821,11 +821,11 @@ if (hasPendingChatKeyRequest) {
     return null;
   }
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-950 text-white">
+    <div className="flex flex-col h-screen w-full overflow-hidden  bg-gray-950 text-white">
       <Header room={room} />
 
       <div className="flex flex-1 min-h-0 w-full">
-        <div className="w-100 shrink-0">
+        <div className="w-110 shrink-0">
           <ChatPanel messages={messages}
             onSendMessage={sendMessage}
             currentParticipantId={room.participantId} />
@@ -835,7 +835,7 @@ if (hasPendingChatKeyRequest) {
           <EnvFilesPanel room={room} roomKeyReady={roomKeyReady} envVersion={envVersion} />
         </div>
 
-        <div className="w-100 shrink-0">
+        <div className="w-110 shrink-0">
           <MembersPanel room={room} members={members} />
         </div>
       </div>

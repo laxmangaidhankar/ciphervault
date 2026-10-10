@@ -9,7 +9,7 @@ export const Header = ({ onMenuToggle, room }) => {
 
   return (
 
-    <header className="h-14 bg-canvas-black border-b border-surface-border flex items-center justify-between px-4 md:px-6 shrink-0 relative z-500">
+    <header className=" h-14 bg-canvas-black border-b border-surface-border flex items-center justify-between px-4 md:px-6 shrink-0 relative z-500">
 
       <div className="flex items-center gap-3">
         {onMenuToggle && (
