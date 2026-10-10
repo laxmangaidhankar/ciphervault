@@ -4,7 +4,7 @@ const HKDF_ALGORITHM = 'HKDF';
 const HASH_ALGORITHM = 'SHA-256';
 
 const PAIRWISE_KEY_INFO =
-  'EnvPanel-Pairwise-Key-v1';
+  'safehouse-pairwise-key-v1';
 
 
 // ----------------------------------------
