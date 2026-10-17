@@ -3,7 +3,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export const options = {
-  vus: 5,
+  vus: 15,
   duration: '10s',
   thresholds: {
     http_req_failed: ['rate<0.01'],
@@ -12,7 +12,7 @@ export const options = {
 };
 
 export default function () {
-  const baseUrl = __ENV.BASE_URL || 'http://localhost:3000';
+  const baseUrl = __ENV.BASE_URL || 'https://safehouse-sigma.vercel.app';
 
   const response = http.post(
     `${baseUrl}/api/v1/rooms`,

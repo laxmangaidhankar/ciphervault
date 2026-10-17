@@ -67,6 +67,7 @@ const pendingChatKeyRequestsRef =
   const [members, setMembers] = useState([]);
   const [envVersion, setEnvVersion] = useState(0);
   const [messages, setMessages] = useState([]);
+  const [activeTab, setActiveTab] = useState("Files");
 
 
   const [participantPublicKeys, setParticipantPublicKeys] =
@@ -820,27 +821,71 @@ if (hasPendingChatKeyRequest) {
   if (!room) {
     return null;
   }
-  return (
-    <div className="flex flex-col h-screen w-full overflow-hidden  bg-gray-950 text-white">
-      <Header room={room} />
+  
+return (
+  <div className="flex h-dvh w-full flex-col overflow-hidden text-white">
+    <Header room={room} />
 
-      <div className="flex flex-1 min-h-0 w-full">
-        <div className="w-110 shrink-0">
-          <ChatPanel messages={messages}
-            onSendMessage={sendMessage}
-            currentParticipantId={room.participantId} />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <EnvFilesPanel room={room} roomKeyReady={roomKeyReady} envVersion={envVersion} />
-        </div>
-
-        <div className="w-110 shrink-0">
-          <MembersPanel room={room} members={members} />
-        </div>
-      </div>
+    {/* Mobile navigation */}
+    <div className="grid grid-cols-3 border-b md:hidden">
+      {["Chat", "Files", "Members"].map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          onClick={() => setActiveTab(tab)}
+          className={`px-2 py-3 text-sm font-medium transition-colors ${
+            activeTab === tab
+              ? "border-b-2 border-black-500 text-blue-400"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          {tab}
+        </button>
+      ))}
     </div>
-  );
+
+    {/* Responsive panels */}
+    <div className="flex min-h-0 min-w-0 flex-1">
+
+      {/* Chat */}
+      <div
+        className={`min-h-0 min-w-0 w-full md:w-[28%] md:shrink-0 ${
+          activeTab !== "Chat" ? "hidden md:block" : ""
+        }`}
+      >
+        <ChatPanel
+          messages={messages}
+          onSendMessage={sendMessage}
+          currentParticipantId={room.participantId}
+        />
+      </div>
+
+      {/* Environment Files */}
+      <div
+        className={`min-h-0 min-w-0 flex-1 ${
+          activeTab !== "Files" ? "hidden md:block" : ""
+        }`}
+      >
+        <EnvFilesPanel
+          room={room}
+          roomKeyReady={roomKeyReady}
+          envVersion={envVersion}
+        />
+      </div>
+
+      {/* Members */}
+      <div
+        className={`min-h-0 min-w-0 w-full md:w-[20%] md:shrink-0 ${
+          activeTab !== "Members" ? "hidden md:block" : ""
+        }`}
+      >
+        <MembersPanel room={room} members={members} />
+      </div>
+
+    </div>
+  </div>
+);
+
 };
 
 export default RoomLayout;
